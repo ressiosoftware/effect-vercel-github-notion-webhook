@@ -1,0 +1,51 @@
+{
+  "name": "github-notion",
+  "description": "Updates Notion with GitHub activity",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "devEngines": {
+    "runtime": {
+      "name": "node",
+      "version": "^22",
+      "onFail": "download"
+    }
+  },
+  "packageManager": "pnpm@10.16.0",
+  "scripts": {
+    "run:dev": "NODE_OPTIONS='--inspect' dotenvx run --convention=nextjs vercel dev",
+    "test": "vitest",
+    "lint": "biome lint .",
+    "format": "biome format --write .",
+    "check": "biome check --write ."
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.2.4",
+    "@effect/language-service": "^0.40.0",
+    "@effect/vitest": "catalog:effect",
+    "@types/node": "^22.0.0",
+    "msw": "catalog:testing",
+    "typescript": "^5.9.2",
+    "ultracite": "5.4.5",
+    "vercel": "^48.0.2",
+    "vitest": "catalog:testing"
+  },
+  "dependencies": {
+    "@dotenvx/dotenvx": "catalog:env",
+    "@effect/experimental": "catalog:effect",
+    "@effect/opentelemetry": "catalog:effect",
+    "@notionhq/client": "catalog:notion",
+    "@opentelemetry/exporter-trace-otlp-http": "catalog:effect",
+    "@opentelemetry/sdk-trace-base": "catalog:effect",
+    "@opentelemetry/sdk-trace-web": "catalog:effect",
+    "@vercel/node": "catalog:vercel",
+    "effect": "catalog:effect"
+  },
+  "pnpm": {
+    "overrides": {
+      "typescript": "^5.9.2"
+    }
+  }
+}

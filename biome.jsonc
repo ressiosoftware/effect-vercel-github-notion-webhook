@@ -1,0 +1,26 @@
+{
+	"$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+	"extends": ["ultracite"],
+	"formatter": {
+		"useEditorconfig": true,
+		"indentStyle": "tab" // SIGH: ensures the .editorconfig setting is used even when filetype formatters defined
+	},
+	"javascript": {
+		"formatter": {
+			"trailingCommas": "all",
+			"bracketSameLine": false
+		}
+	},
+	"linter": {
+		"rules": {
+			"style": {
+				"useConsistentArrayType": {
+					"level": "error",
+					"options": {
+						"syntax": "generic"
+					}
+				}
+			}
+		}
+	}
+}
