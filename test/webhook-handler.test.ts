@@ -355,7 +355,6 @@ describe("Webhook", () => {
 
 							Exit.match(result, {
 								onSuccess: (data) => {
-									console.log({ data });
 									if (!("notion" in data)) {
 										assert.fail("notion field not found");
 									}
