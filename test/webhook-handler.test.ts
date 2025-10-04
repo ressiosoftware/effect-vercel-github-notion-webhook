@@ -82,31 +82,32 @@ const NotionServiceTest = Layer.succeed(
 	}),
 );
 
-const VercelHttpContextTest = Layer.succeed(VercelHttpContext, {
-	request: {
-		method: "GET",
-		headers: {},
-		query: {},
-	} as VercelRequest,
-	response: {
-		statusCode: 200,
-		status: (_code: number) => ({
-			json: (_data: any) => Promise.resolve(),
-		}),
+/** The relevant parts of VercelResponse used across various tests */
+const VercelHttpResponseMock = {
+	statusCode: 200,
+	status: (_code: number) => ({
 		json: (_data: any) => Promise.resolve(),
-		// biome-ignore lint/suspicious/noEmptyBlockStatements: Mock function doesn't need implementation
-		setHeader: () => {},
-		get headersSent() {
-			return false;
-		},
-	} as any as VercelResponse,
-});
+	}),
+	json: (_data: any) => Promise.resolve(),
+	// biome-ignore lint/suspicious/noEmptyBlockStatements: Mock function doesn't need implementation
+	setHeader: () => {},
+	get headersSent() {
+		return false;
+	},
+} as any as VercelResponse;
 
-const AppLayerTest = Layer.mergeAll(
-	SystemInfoTest,
-	VercelHttpContextTest,
-	NotionServiceTest,
-);
+const createVercelHttpRequestMock = ({
+	method,
+	headers = {},
+	query = {},
+	body,
+}: Partial<VercelRequest>) =>
+	({
+		method,
+		headers,
+		query,
+		body,
+	}) as VercelRequest;
 
 // TODO: try TestClock ?
 
@@ -197,38 +198,22 @@ describe("Webhook", () => {
 	describe("program", () => {
 		it.effect("should fail on bad input", () =>
 			Effect.gen(function* () {
+				const localVercelHttpContext = Layer.succeed(VercelHttpContext, {
+					request: createVercelHttpRequestMock({
+						method: "INVALID_METHOD",
+					}),
+					response: VercelHttpResponseMock,
+				});
+
+				const localContext = Layer.mergeAll(
+					SystemInfoTest,
+					NotionServiceTest,
+					localVercelHttpContext,
+				);
+
 				const exit = yield* Effect.exit(
 					Effect.withConfigProvider(
-						Effect.provide(
-							program(),
-							// AppLayerTest
-							Layer.mergeAll(
-								SystemInfoTest,
-								NotionServiceTest,
-
-								// create bad http request data
-								// VercelHttpContextTest,
-								Layer.succeed(VercelHttpContext, {
-									request: {
-										method: "INVALID", // <- intentional problem
-										headers: {},
-									} as VercelRequest,
-									response: {
-										statusCode: 200,
-										status: (_code: number) => ({
-											json: (_data: any) => Promise.resolve(),
-										}),
-										json: (_data: any) => Promise.resolve(),
-										// biome-ignore lint/suspicious/noEmptyBlockStatements: Mock function doesn't need implementation
-										setHeader: () => {},
-										get headersSent() {
-											return false;
-										},
-									} as any as VercelResponse,
-								}),
-							),
-						),
-
+						Effect.provide(program(), localContext),
 						AppConfigProviderTest,
 					),
 				);
@@ -248,10 +233,23 @@ describe("Webhook", () => {
 				const arbitraryHttpGet = Arbitrary.make(GetRequestSchema);
 				const [req] = FastCheck.sample(arbitraryHttpGet, 1);
 
+				const localVercelHttpContext = Layer.succeed(VercelHttpContext, {
+					request: createVercelHttpRequestMock({
+						method: req.method,
+						query: req.query,
+					}),
+					response: VercelHttpResponseMock,
+				});
+
+				const localContext = Layer.mergeAll(
+					SystemInfoTest,
+					NotionServiceTest,
+					localVercelHttpContext,
+				);
+
 				const result = yield* Effect.exit(
 					Effect.withConfigProvider(
-						Effect.provide(program(req), AppLayerTest),
-
+						Effect.provide(program(), localContext),
 						AppConfigProviderTest,
 					),
 				);
@@ -321,44 +319,30 @@ describe("Webhook", () => {
 								},
 							};
 
+							// overwrite VercelHttpContextTest with test-specific layer
+							const localVercelHttpContext = Layer.succeed(VercelHttpContext, {
+								// TODO: use Arbitrary/FastCheck?
+								request: createVercelHttpRequestMock({
+									method: "POST",
+									headers: {
+										"x-github-event": "pull_request",
+										"x-github-delivery": "test-delivery-123",
+										"content-type": "application/json",
+									},
+									body: webhookPayload,
+								}),
+								response: VercelHttpResponseMock,
+							});
+
+							const localContext = Layer.mergeAll(
+								SystemInfoTest,
+								NotionServiceTest,
+								localVercelHttpContext,
+							);
+
 							const result = yield* Effect.exit(
 								Effect.withConfigProvider(
-									Effect.provide(
-										program(),
-
-										// AppLayerTest
-										Layer.mergeAll(
-											SystemInfoTest,
-											NotionServiceTest,
-
-											// create bad http request data
-											// VercelHttpContextTest,
-											Layer.succeed(VercelHttpContext, {
-												// TODO: use Arbitrary/FastCheck?
-												request: {
-													method: "POST" as const,
-													headers: {
-														"x-github-event": "pull_request",
-														"x-github-delivery": "test-delivery-123",
-														"content-type": "application/json",
-													},
-													body: webhookPayload,
-												} as any as VercelRequest,
-												response: {
-													statusCode: 200,
-													status: (_code: number) => ({
-														json: (_data: any) => Promise.resolve(),
-													}),
-													json: (_data: any) => Promise.resolve(),
-													// biome-ignore lint/suspicious/noEmptyBlockStatements: Mock function doesn't need implementation
-													setHeader: () => {},
-													get headersSent() {
-														return false;
-													},
-												} as any as VercelResponse,
-											}),
-										),
-									),
+									Effect.provide(program(), localContext),
 
 									AppConfigProviderTest,
 								),
@@ -370,6 +354,7 @@ describe("Webhook", () => {
 
 							Exit.match(result, {
 								onSuccess: (data) => {
+									console.log({ data });
 									if (!("notion" in data)) {
 										assert.fail("notion field not found");
 									}
