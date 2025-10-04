@@ -90,11 +90,10 @@ export class Notion extends Effect.Service<Notion>()("Notion", {
 					auth: Redacted.value(notionToken),
 				});
 
-				const dataSourceId = yield* getDataSourceIdFromDatabaseId(
-					// TODO: don't hardcode?
-					// WARN: hardcoded db id
-					"1b92a2227ddb414ba73d33e0c8ea0c59",
-				);
+				const { notionDatabaseId } = yield* AppConfig;
+
+				const dataSourceId =
+					yield* getDataSourceIdFromDatabaseId(notionDatabaseId);
 
 				yield* Effect.log(
 					`🪵 Notion#getByTaskIdProperty() called with taskId:${taskId}, extracting the number...`,

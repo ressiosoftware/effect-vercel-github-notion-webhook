@@ -33,6 +33,7 @@ const AppConfigProviderTest = ConfigProvider.fromMap(
 		["API_VERSION", "1.2.3"],
 		["OTEL_EXPORTER_OTLP_TRACES_ENDPOINT", "http://localhost:4318/v1/traces"],
 		["NOTION_TOKEN", "notion-token-test"],
+		["NOTION_DATABASE_ID", "notion-database-id-test"],
 	]),
 );
 
