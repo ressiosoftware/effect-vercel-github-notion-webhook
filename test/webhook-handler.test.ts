@@ -60,11 +60,9 @@ const MOCK_NOTION_PAGE_ID = "mock-notion-page-id" as const;
 const NotionServiceTest = Layer.succeed(
 	Notion,
 	new Notion({
-		// TODO:
 		getByTaskIdProperty: Effect.fn("getByTaskIdProperty")(function* (
 			_taskId: string,
 		) {
-			// TODO: note that this is the wrong return value type
 			return yield* Effect.succeed({
 				pageId: MOCK_NOTION_PAGE_ID,
 			});
@@ -74,7 +72,6 @@ const NotionServiceTest = Layer.succeed(
 			pageId: string,
 			status: string,
 		) {
-			// TODO: note that this is the wrong return value type
 			return yield* Effect.succeed({
 				pageId,
 				newStatus: status,
