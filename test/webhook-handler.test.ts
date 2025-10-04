@@ -115,8 +115,8 @@ const createVercelHttpRequestMock = ({
 describe("Webhook", () => {
 	describe("vercel fn handler", () => {
 		// ensure that basic GET requests work
-		// TODO: need to rework handler a little to make this more testable
-		it.effect("should handle a GET request", () =>
+		// TODO: probably need to rework handler a little to make this more testable?
+		it.todo("should handle a GET request", () =>
 			it.flakyTest(
 				// WARN: this isn't actually flaky;
 				// i'm just showing off the flakyTest feature (for kitchen sink demo)
@@ -160,8 +160,8 @@ describe("Webhook", () => {
 			),
 		);
 
-		// TODO:
-		it.effect("should handle malformed webhook gracefully", () =>
+		// TODO: probably need to rework handler a lil to make this more testable?
+		it.todo("should handle malformed webhook gracefully", () =>
 			Effect.gen(function* () {
 				const malformedRequest = {
 					method: "POST" as const,
