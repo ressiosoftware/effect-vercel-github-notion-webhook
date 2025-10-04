@@ -145,9 +145,6 @@ describe("Webhook", () => {
 
 		it.effect("should show basic output plain GET", () =>
 			Effect.gen(function* () {
-				// TODO: the arbitrary data is sometimes creating a failure by
-				// haveing an unexpected paylaod... Run the tests like 5-10 times,
-				// it should fail a few times and succeed the rest.
 				const arbitraryHttpGet = Arbitrary.make(GetRequestSchema);
 				const [req] = FastCheck.sample(arbitraryHttpGet, 1);
 
