@@ -1,37 +1,47 @@
+import { types } from "node:util";
 import { Client } from "@notionhq/client";
-import { Effect, Redacted, Schema } from "effect";
-import { GenIdNumberFromString } from "./notion.schema.ts";
-import { AppConfig } from "./schemas.ts";
+import { Effect, Layer, Redacted, Schema } from "effect";
+import { AppConfig } from "#platform/schema.ts";
+import { Notion } from "#services/notion/api.ts";
+import { NotionRequestFailureError } from "#services/notion/errors.ts";
+import { GenIdNumberFromString } from "#services/notion/schema.ts";
 
-// the main "tradeoff" of `Effect.Service`'s convenience is largely that it
-// more implicitly couples your interface with the implementation.
-// i.e. the service is AIO instead of interface + repo (implementation)
-// - interface: https://github.com/Effect-TS/examples/blob/main/templates/monorepo/packages/domain/src/TodosApi.ts
-// - repo: https://github.com/Effect-TS/examples/blob/main/templates/monorepo/packages/server/src/TodosRepository.ts
-export class Notion extends Effect.Service<Notion>()("Notion", {
-	effect: Effect.gen(function* () {
-		yield* Effect.log("🪵 Notion service");
+export const NotionLive = Layer.effect(
+	Notion,
 
-		// Data source ID discovery per 2025-09-03 upgrade guide:
-		// https://developers.notion.com/docs/upgrade-guide-2025-09-03#step-1-add-a-discovery-step-to-fetch-and-store-the-data_source_id
-		// NOTE: technically we can skip this by just using a known data source ID, but
-		// leaving it in for intentionally-added complexity (learning).
+	Effect.gen(function* () {
+		const { notionToken, notionDatabaseId } = yield* AppConfig;
+
+		const notion = new Client({
+			auth: Redacted.value(notionToken),
+		});
+
+		/**
+		 * Data source ID discovery per 2025-09-03 upgrade guide:
+		 * https://developers.notion.com/docs/upgrade-guide-2025-09-03#step-1-add-a-discovery-step-to-fetch-and-store-the-data_source_id
+		 *
+		 * NOTE: technically we can skip this by just using a known data source ID, but
+		 * leaving it in for intentionally-added complexity (learning)
+		 */
 		const getDataSourceIdFromDatabaseId = Effect.fn(
 			"getDataSourceIdFromDatabaseId",
 		)(function* (databaseId: string) {
-			const { notionToken } = yield* AppConfig;
-
-			const notion = new Client({
-				auth: Redacted.value(notionToken),
-			});
-
 			/** raw result from notion api */
-			const rawDataSourcesResult = yield* Effect.tryPromise(() =>
-				notion.request({
-					method: "get",
-					path: `databases/${databaseId}`,
-				}),
-			);
+			const rawDataSourcesResult = yield* Effect.tryPromise({
+				try: () =>
+					notion.request({
+						method: "get",
+						path: `databases/${databaseId}`,
+					}),
+
+				catch(error) {
+					return new NotionRequestFailureError({
+						reason: types.isNativeError(error)
+							? error.message
+							: "Unknown Notion error",
+					});
+				},
+			});
 
 			const DataSourceSchema = Schema.Struct({
 				object: Schema.Literal("database"),
@@ -84,14 +94,6 @@ export class Notion extends Effect.Service<Notion>()("Notion", {
 				 * @example `GEN-6250` */
 				taskId: string,
 			) {
-				const { notionToken } = yield* AppConfig;
-
-				const notion = new Client({
-					auth: Redacted.value(notionToken),
-				});
-
-				const { notionDatabaseId } = yield* AppConfig;
-
 				const dataSourceId =
 					yield* getDataSourceIdFromDatabaseId(notionDatabaseId);
 
@@ -109,37 +111,42 @@ export class Notion extends Effect.Service<Notion>()("Notion", {
 					taskIdNumber,
 				);
 
-				const result = yield* Effect.tryPromise(() =>
-					notion.dataSources.query({
-						// biome-ignore lint/style/useNamingConvention: Notion API uses snake_case
-						data_source_id: dataSourceId,
+				const result = yield* Effect.tryPromise({
+					try: () =>
+						notion.dataSources.query({
+							// biome-ignore lint/style/useNamingConvention: Notion API uses snake_case
+							data_source_id: dataSourceId,
 
-						filter: {
-							and: [
-								{
-									property: "Task ID", // name of property
+							filter: {
+								and: [
+									{
+										property: "Task ID", // name of property
+										// TODO: ^^ hardcoded for now
 
-									// verification: {
-									//     status: "none",
-									// },
-
-									// the generated IDs are a called "unique_id" in notion's API
-									// biome-ignore lint/style/useNamingConvention: Notion API uses snake_case
-									unique_id: {
-										equals: taskIdNumber,
+										// the generated IDs are a called "unique_id" in notion's API
+										// biome-ignore lint/style/useNamingConvention: Notion API uses snake_case
+										unique_id: {
+											equals: taskIdNumber,
+										},
 									},
-								},
-							],
-						},
+								],
+							},
 
-						// biome-ignore lint/style/useNamingConvention: Notion API uses snake_case
-						filter_properties: [
-							// only get subset of properties
-							"title",
-							"notion://tasks/status_property",
-						],
-					}),
-				);
+							// biome-ignore lint/style/useNamingConvention: Notion API uses snake_case
+							filter_properties: [
+								// only get subset of properties
+								"title",
+								"notion://tasks/status_property",
+							],
+						}),
+					catch(error) {
+						return new NotionRequestFailureError({
+							reason: types.isNativeError(error)
+								? error.message
+								: "Unknown Notion error",
+						});
+					},
+				});
 
 				const {
 					// object: objectKind,
@@ -161,26 +168,29 @@ export class Notion extends Effect.Service<Notion>()("Notion", {
 				pageId: string,
 				status: string,
 			) {
-				const { notionToken } = yield* AppConfig;
-
-				const notion = new Client({
-					auth: Redacted.value(notionToken),
-				});
-
-				yield* Effect.tryPromise(() =>
-					notion.pages.update({
-						// biome-ignore lint/style/useNamingConvention: Notion API uses snake_case
-						page_id: pageId,
-						properties: {
+				yield* Effect.tryPromise({
+					try: () =>
+						notion.pages.update({
 							// biome-ignore lint/style/useNamingConvention: Notion API uses snake_case
-							Status: {
-								status: {
-									name: status,
+							page_id: pageId,
+							properties: {
+								// biome-ignore lint/style/useNamingConvention: Notion API uses snake_case
+								Status: {
+									status: {
+										name: status,
+									},
 								},
 							},
-						},
-					}),
-				);
+						}),
+
+					catch(error) {
+						return new NotionRequestFailureError({
+							reason: types.isNativeError(error)
+								? error.message
+								: "Unknown Notion error",
+						});
+					},
+				});
 
 				// yield* Effect.log(
 				//     "🪵 Notion#setNotionStatus() performed notion.pages.update, result:",
@@ -195,6 +205,4 @@ export class Notion extends Effect.Service<Notion>()("Notion", {
 			}),
 		} as const;
 	}),
-
-	dependencies: [],
-}) {}
+);

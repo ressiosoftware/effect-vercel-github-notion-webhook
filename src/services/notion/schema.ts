@@ -1,5 +1,5 @@
 import { ParseResult, Schema } from "effect";
-import { GitHubPullRequest } from "./schemas.ts";
+import { GitHubPullRequest } from "#services/github/schema.ts";
 
 /** Extract all GEN-#### patterns from PR title and branch name;
  * handles dedupe + case-insensitivity

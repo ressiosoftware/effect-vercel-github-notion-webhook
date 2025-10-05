@@ -1,0 +1,21 @@
+pre-commit:
+    parallel: true
+    commands:
+        types:
+            glob: "*.{ts,tsx}"
+            run: pnpm types:check
+        lint:
+            glob: "*.{js,ts,jsx,tsx,json}"
+            run: pnpm lint:check:staged
+        format:
+            glob: "*.{js,ts,jsx,tsx,json}"
+            run: pnpm format:check:staged
+pre-push:
+    parallel: false
+    commands:
+        tests:
+            run: pnpm test:run
+# commit-msg:
+#   commands:
+#     validate-commit-message:
+#       run: npx commitlint --edit {1}

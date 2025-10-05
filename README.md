@@ -7,10 +7,13 @@
     cp .env.example .env.local
     ```
 
-3. run otel server
+3. run local development otel server
 
     ```bash
-    docker run -p 3000:3000 -p 4317:4317 -p 4318:4318 --rm -it docker.io/grafana/otel-lgtm
+    pnpm otel:dev
+
+    # ^ FYI just starts a docker container (grafana/otel-lgtm)
+    # docker run -p 3000:3000 -p 4317:4317 -p 4318:4318 --rm -it docker.io/grafana/otel-lgtm
     ```
 
 4. `pnpm dev:run`
@@ -22,8 +25,31 @@
 # run tests
 
 ```bash
-pnpm test
+# run tests in watch mode
+pnpm test:watch
+
+# or run once:
+pnpm test:run
 ```
+
+# available scripts
+
+| script                | description                                                         |
+| --------------------- | ------------------------------------------------------------------- |
+| `run:dev`             | starts the development server with inspect mode                     |
+| `otel:dev`            | starts a local development OpenTelemetry server (grafana/otel-lgtm) |
+| `test:watch`          | runs tests in watch mode                                            |
+| `test:run`            | runs tests once without watch mode                                  |
+| `lint:check`          | checks all files for linting errors                                 |
+| `lint:check:staged`   | checks staged files for linting errors                              |
+| `lint:fix`            | fixes linting errors in all files                                   |
+| `lint:fix:staged`     | fixes linting errors in staged files                                |
+| `format:check`        | checks all files for formatting issues                              |
+| `format:check:staged` | checks staged files for formatting issues                           |
+| `format:fix`          | fixes formatting in all files                                       |
+| `format:fix:staged`   | fixes formatting in staged files                                    |
+| `check`               | runs biome check with auto-fix                                      |
+| `types:check`         | runs typescript type checking                                       |
 
 # opentelemetry
 
@@ -38,10 +64,10 @@ use a tool to collect and visualize those traces.
 > [!NOTE] below is just yoinked advice from Effect's tracing docs:
 > <https://effect.website/docs/observability/tracing/#tutorial-visualizing-traces>
 
-here's how to run otel/lgtm locally:
+here's how to run otel/lgtm locally for development:
 
 ```bash
-docker run -p 3000:3000 -p 4317:4317 -p 4318:4318 --rm -it docker.io/grafana/otel-lgtm
+pnpm otel:dev
 ```
 
 then run the program so it sends traces,

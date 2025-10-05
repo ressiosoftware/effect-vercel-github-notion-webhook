@@ -1,0 +1,70 @@
+import { assert, describe, it } from "@effect/vitest";
+import { ConfigProvider, Effect } from "effect";
+import { MOCK_NOTION_PAGE_ID } from "#mocks/msw-handlers.ts";
+import { Notion } from "#services/notion/api.ts";
+import { NotionLive } from "#services/notion/service.ts";
+
+/** Application Config layer for testing */
+const AppConfigProviderTest = ConfigProvider.fromMap(
+	// TODO: how to tie this to the config schema itself?
+	new Map([
+		["GITHUB_WEBHOOK_SECRET", "github-webhook-secret-test"],
+		["NODE_ENV", "development"],
+		["API_VERSION", "1.2.3"],
+		["OTEL_EXPORTER_OTLP_TRACES_ENDPOINT", "http://localhost:4318/v1/traces"],
+		["NOTION_TOKEN", "notion-token-test"],
+		["NOTION_DATABASE_ID", "notion-database-id-test"],
+	]),
+);
+
+describe("services/notion", () => {
+	describe("service", () => {
+		describe("getByTaskIdProperty", () => {
+			it.effect(
+				"should get/return the Notion page ID for a valid task ID",
+				() => {
+					const taskIdMock = "GEN-1234" as const;
+
+					return Effect.withConfigProvider(
+						Effect.gen(function* () {
+							const notion = yield* Notion;
+
+							// Call the function we want to test
+							const result = yield* notion.getByTaskIdProperty(taskIdMock);
+
+							// Assert the expected result
+							assert.deepEqual(result, {
+								pageId: MOCK_NOTION_PAGE_ID,
+							});
+						}).pipe(Effect.provide(NotionLive)),
+						AppConfigProviderTest,
+					);
+				},
+			);
+
+			it.effect(
+				"should return the status and page ID after setting the status",
+				() => {
+					return Effect.withConfigProvider(
+						Effect.gen(function* () {
+							const notion = yield* Notion;
+
+							// Call the function we want to test
+							const result = yield* notion.setNotionStatus(
+								MOCK_NOTION_PAGE_ID,
+								"In progress",
+							);
+
+							// Assert the expected result
+							assert.deepEqual(result, {
+								pageId: MOCK_NOTION_PAGE_ID,
+								newStatus: "In progress",
+							});
+						}).pipe(Effect.provide(NotionLive)),
+						AppConfigProviderTest,
+					);
+				},
+			);
+		});
+	});
+});

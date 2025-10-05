@@ -1,6 +1,10 @@
 catalogMode: prefer
 
 catalogs:
+  devtools:
+    '@biomejs/biome': ^2.2.4
+    lefthook: ^1.13.6
+    ultracite: ^5.4.5
   effect:
     '@effect/experimental': ^0.54.6
     '@effect/opentelemetry': ^0.52.2

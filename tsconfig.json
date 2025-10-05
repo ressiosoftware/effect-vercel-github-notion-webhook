@@ -16,6 +16,6 @@
     "allowImportingTsExtensions": true,
     "strictNullChecks": true
   },
-  "include": ["api", "test"],
+  "include": ["api", "src", "test"],
   "exclude": ["node_modules"]
 }

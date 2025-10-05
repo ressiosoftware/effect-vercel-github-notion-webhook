@@ -6,28 +6,22 @@ import {
 	ConsoleSpanExporter,
 } from "@opentelemetry/sdk-trace-base";
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import {
-	Cause,
-	ConfigError,
-	Data,
-	Effect,
-	Exit,
-	Layer,
-	Redacted,
-	Schema,
-} from "effect";
+import { Cause, ConfigError, Effect, Exit, Layer } from "effect";
 import { ParseError } from "effect/ParseResult";
-import { Notion } from "./notion.effect.ts";
-import { GenIdFromPullRequest } from "./notion.schema.ts";
+import { AppConfig } from "#platform/schema.ts";
 import {
-	AppConfig,
-	type GetRequest,
-	type GitHubPrWebhookData,
-	GitHubPullRequestWebhook,
-	type PostRequest,
-	RequestEnvelope,
-	type ValidatedRequest,
-} from "./schemas.js";
+	InvalidRequestError,
+	SignatureFailureError,
+	UnsupportedMethodError,
+} from "#services/github/errors.ts";
+import { NotionRequestFailureError } from "#services/notion/errors.ts";
+import {
+	// Notion,
+	NotionLive,
+} from "#services/notion/service.ts";
+import { program } from "#services/program.ts";
+import { SystemInfo } from "#services/system-info/service.ts";
+import { VercelHttpContext } from "#services/vercel/types.ts";
 
 /**
  * NodeSdk layer w/ opentelemetry tracing
@@ -72,303 +66,24 @@ const DevToolsLive = Layer.unwrapEffect(
 	}),
 );
 
-// Generate Layer for SystemInfo service
-export class SystemInfo extends Effect.Service<SystemInfo>()("SystemInfo", {
-	sync: () => ({
-		getUptime: () => process.uptime(),
-		getMemoryUsage: () => process.memoryUsage(),
-		getNodeVersion: () => process.version,
-	}),
-}) {}
-
-// Custom error types for better error handling
-class InvalidRequestError extends Data.TaggedError("InvalidRequestError")<{
-	reason: string;
-	details?: unknown;
-}> {}
-
-class UnsupportedMethodError extends Data.TaggedError(
-	"UnsupportedMethodError",
-)<{
-	method: string;
-	supported: Array<string>;
-}> {}
-
-const handleGetRequest = Effect.fn("handleGetRequest")(function* (
-	request: GetRequest,
-) {
-	const config = yield* AppConfig;
-	yield* Effect.log({
-		config,
-	});
-
-	yield* Effect.log("🔍 Processing GET request", {
-		query: request.query,
-	});
-
-	const query = request.query || {};
-	const isDetailed = query.detailed === true;
-	const isHealthCheck = query.health !== undefined;
-
-	if (isHealthCheck) {
-		const systemInfo = yield* SystemInfo;
-
-		// fake slowness for testing traces, mostly
-		// if (isDetailed) {
-		//	   yield* Effect.sleep("2 seconds");
-		// }
-
-		const healthData = {
-			status: "healthy",
-			timestamp: new Date().toISOString(),
-			version: config.apiVersion,
-			environment: config.nodeEnv,
-
-			// TODO: not sure how to handle things like `process.foo`
-			...(isDetailed && {
-				uptime: systemInfo.getUptime(),
-				memory: systemInfo.getMemoryUsage(),
-				nodeVersion: systemInfo.getNodeVersion(),
-			}),
-		};
-
-		yield* Effect.log("✅ Health check completed", {
-			detailed: isDetailed,
-		});
-		return healthData;
-	}
-
-	// Default GET response
-	return {
-		message: "GitHub Webhook Handler API",
-		version: config.apiVersion,
-		environment: config.nodeEnv,
-		endpoints: {
-			"GET /": "API information",
-			"GET /?health=true": "Health check",
-			"GET /?health=true&detailed=true": "Detailed health check",
-			"POST /": "GitHub webhook endpoint",
-		},
-		timestamp: new Date().toISOString(),
-	};
-});
-
-const routeValidatedRequest = Effect.fn("routeValidatedRequest")(function* (
-	request: ValidatedRequest,
-) {
-	switch (request.method) {
-		case "GET":
-			return yield* handleGetRequest(request);
-		case "POST":
-			return yield* handlePostRequest(request);
-		default:
-			// This should never happen due to schema validation, but TypeScript doesn't know
-			return yield* Effect.fail(
-				new UnsupportedMethodError({
-					// biome-ignore lint/suspicious/noExplicitAny: handling errors
-					method: (request as any).method,
-					supported: ["GET", "POST"],
-				}),
-			);
-	}
-});
-
-const validateWebhookSignature = Effect.fn("validateWebhookSignature")(
-	function* (body: unknown, signature: string, secret: string) {
-		const crypto = yield* Effect.sync(() => require("node:crypto"));
-		const expectedSignature = yield* Effect.sync(
-			() =>
-				`sha256=${crypto
-					.createHmac("sha256", secret)
-					.update(JSON.stringify(body))
-					.digest("hex")}`,
-		);
-
-		if (signature !== expectedSignature) {
-			return yield* Effect.fail(new Error("Invalid webhook signature"));
-		}
-
-		return true;
-	},
-);
-
-const validateGitHubWebhook = Effect.fn("validateGitHubWebhook")(function* (
-	headers: PostRequest["headers"],
-	body: unknown,
-) {
-	const config = yield* AppConfig;
-
-	// Validate webhook signature if configured
-	const signature = headers["x-hub-signature-256"];
-
-	// ... but only required if not dev env
-	if (signature && config.nodeEnv !== "development") {
-		return yield* Effect.fail(
-			new InvalidRequestError({
-				reason: "Webhook signature required in production",
-			}),
-		);
-	}
-
-	if (signature) {
-		const secretValue = Redacted.value(config.githubWebhookSecret);
-
-		const isValid = yield* validateWebhookSignature(
-			body,
-			signature,
-			secretValue,
-		);
-		if (!isValid) {
-			return yield* Effect.fail(
-				new InvalidRequestError({
-					reason: "Invalid webhook signature",
-				}),
-			);
-		}
-	}
-
-	// Validate payload structure with your existing GitHub schema
-	const payload: GitHubPrWebhookData = yield* Schema.decodeUnknown(
-		GitHubPullRequestWebhook,
-	)(body);
-
-	return payload;
-});
-
-const handlePostRequest = Effect.fn("handlePostRequest")(function* (
-	request: PostRequest,
-) {
-	yield* Effect.log("📝 Processing POST request - GitHub webhook");
-
-	// Validate it's a GitHub pull request webhook
-	if (request.headers["x-github-event"] !== "pull_request") {
-		return yield* Effect.fail(
-			new InvalidRequestError({
-				reason: "Invalid GitHub event type",
-				details: {
-					expected: "pull_request",
-					received: request.headers["x-github-event"],
-				},
-			}),
-		);
-	}
-
-	const webhook = yield* validateGitHubWebhook(request.headers, request.body);
-
-	yield* Effect.log("🪵 Webhook validated successfully", {
-		action: webhook.action,
-		prNumber: webhook.pull_request.number,
-		title: webhook.pull_request.title,
-		author: webhook.pull_request.user.login,
-		repository: webhook.repository.full_name,
-		branch: webhook.pull_request.head.ref,
-	});
-
-	// Process the webhook based on action
-	// const result = yield* processWebhookAction(webhook);
-
-	const genIdMatches = yield* Schema.decode(GenIdFromPullRequest)(
-		webhook.pull_request,
-	);
-
-	// get the Notion service
-	const notion = yield* Notion;
-
-	/** Array of updated notion pages */
-	const updatedTasks: Array<{
-		genId: string;
-		notionPageId: string;
-	}> = [];
-
-	for (const genId of genIdMatches) {
-		// Turn `GEN-#####` into a Notion page ID
-		const { pageId: notionPageId } =
-			// yield* notion.getByTaskIdProperty(foundGenId);
-			yield* notion.getByTaskIdProperty(genId);
-
-		yield* Effect.log(
-			"🪵 notion.getByTaskIdProperty() returned:",
-			notionPageId,
-		);
-
-		// Use the page ID to update the status of the task
-		const statusUpdateResult = yield* notion.setNotionStatus(
-			notionPageId,
-			"In progress",
-		);
-
-		yield* Effect.log(
-			"🪵 notion.setNotionStatus() returned:",
-			statusUpdateResult,
-		);
-
-		updatedTasks.push({
-			genId,
-			notionPageId: statusUpdateResult.pageId,
-		});
-	}
-
-	return {
-		// TODO: decide on the shape of the response
-		notion: {
-			updatedTasks,
-		},
-	};
-});
-
-export class VercelHttpContext extends Effect.Tag("VercelHttpContext")<
-	VercelHttpContext,
-	{
-		request: VercelRequest;
-		response: VercelResponse;
-	}
->() {}
-
-export const VercelHttpContextLive = (
-	req: VercelRequest,
-	res: VercelResponse,
-) =>
+/**
+ * VercelHttpContext layer
+ *
+ * Wraps ("captures") the Vercel request/response objects and makes them
+ * available as a service that can be consumed by Effects that need it.
+ */
+const VercelHttpContextLive = (req: VercelRequest, res: VercelResponse) =>
 	Layer.succeed(VercelHttpContext, {
 		request: req,
 		response: res,
 	});
 
-export const program = Effect.fn("api/webhook.ts#program", {
-	// just learning/seeing how attrs show up in traces
-	attributes: {
-		foo: "bar",
-	},
-})(function* () {
-	yield* Effect.log("🚀 Program started");
-
-	const {
-		request,
-		// response,
-	} = yield* VercelHttpContext;
-
-	const maxUserAgentLength = 200 as const;
-	yield* Effect.log("🚀 Request received", {
-		method: request.method,
-		userAgent: request.headers["user-agent"]?.slice(0, maxUserAgentLength),
-	});
-
-	const validRequest = yield* Schema.decodeUnknown(RequestEnvelope)(request);
-
-	yield* Effect.log("🚀 Request validated");
-
-	const result = yield* routeValidatedRequest(validRequest);
-
-	Effect.runSync(Effect.logInfo("🏁 Request routed, returning result..."));
-
-	return result;
-});
-
 export default async function handler(req: VercelRequest, res: VercelResponse) {
 	// These are merged because they don't depend on each other.
 	const AppLive = Layer.mergeAll(
-		SystemInfo.Default,
 		VercelHttpContextLive(req, res),
-		Notion.Default,
+		SystemInfo.Default,
+		NotionLive,
 	);
 
 	const runnable = Effect.provide(
@@ -383,9 +98,136 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 	// Run and capture exit/result
 	const result = await Effect.runPromiseExit(runnable);
 
+	handleExit({
+		exit: result,
+		request: req,
+		response: res,
+	});
+}
+
+type ProgramReturn = ReturnType<typeof program>;
+type ProgramSuccess = Effect.Effect.Success<ProgramReturn>;
+type ProgramError = Effect.Effect.Error<ProgramReturn>;
+type ProgramExit = Exit.Exit<ProgramSuccess, ProgramError>;
+
+const HttpInternalServerError = 500 as const;
+const HttpBadRequest = 400 as const;
+const HttpMethodNotAllowed = 405 as const;
+
+/**
+ * ✅ "Expected" errors
+ */
+function handleFailType(cause: Cause.Fail<ProgramError>) {
+	const error = cause.error;
+
+	if (error instanceof InvalidRequestError) {
+		Effect.runSync(
+			Effect.log("❌ Invalid request:", {
+				error: error.reason,
+			}),
+		);
+
+		return {
+			status: HttpBadRequest,
+			error: "Bad Request",
+			reason: error.reason,
+			details: error.details,
+		};
+	}
+
+	if (error instanceof UnsupportedMethodError) {
+		Effect.runSync(
+			Effect.log("❌ Unsupported method:", {
+				error: error.method,
+				supported: error.supported,
+			}),
+		);
+
+		// Tell the client the supported methods
+		// res.setHeader("Allow", error.supported.join(", "));
+
+		return {
+			status: HttpMethodNotAllowed,
+			error: "Method Not Allowed",
+			method: error.method,
+			supported: error.supported,
+			details: undefined,
+		};
+	}
+
+	if (error instanceof ParseError) {
+		Effect.runSync(
+			Effect.log("❌ Schema validation failed:", {
+				error: error.message,
+			}),
+		);
+
+		return {
+			status: HttpBadRequest,
+			error: "Invalid request format",
+			details: "Request does not match expected schema",
+		};
+	}
+
+	if (ConfigError.isConfigError(error)) {
+		Effect.runSync(
+			Effect.log("❌ Config error:", {
+				error: "Invalid config",
+			}),
+		);
+
+		return {
+			status: HttpBadRequest,
+			error: "Invalid config",
+			details: "Invalid config",
+		};
+	}
+
+	if (error instanceof SignatureFailureError) {
+		Effect.runSync(
+			Effect.log("❌ Invalid webhook signature:", {
+				error: error.reason,
+			}),
+		);
+
+		return {
+			status: HttpBadRequest,
+			error: "Invalid webhook signature",
+			details: "Invalid webhook signature",
+		};
+	}
+
+	if (error instanceof NotionRequestFailureError) {
+		Effect.runSync(
+			Effect.log("❌ Notion request failure:", {
+				error: error.reason,
+			}),
+		);
+
+		return {
+			status: HttpBadRequest,
+			error: "Notion request failure",
+			details: error.reason,
+		};
+	}
+
+	// exhaustiveness check
+	error satisfies never;
+	throw new Error("Unreachable (unhandled failure)");
+}
+
+function handleExit({
+	exit,
+	request: req,
+	response: res,
+}: {
+	exit: ProgramExit;
+	request: VercelRequest;
+	response: VercelResponse;
+}) {
 	Effect.runSync(Effect.logInfo("🏁 Program exited, evaluating Exit..."));
 
-	Exit.match(result, {
+	Exit.match(exit, {
 		onSuccess(data) {
 			Effect.runSync(
 				Effect.log("✅ Request processed successfully", {
@@ -404,100 +246,29 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 		},
 
 		onFailure(cause) {
-			const HttpServerError = 500 as const;
-			const HttpBadRequest = 400 as const;
-			const HttpMethodNotAllowed = 405 as const;
-
 			if (res.headersSent) {
 				throw new Error("Headers already sent");
 			}
 
 			// Handle different error types with specific responses
 			if (Cause.isFailType(cause)) {
-				// ✅ "Expected" errors
-				const error = cause.error;
+				const { status, ...failEnvelope } = handleFailType(cause);
 
-				if (error instanceof InvalidRequestError) {
-					Effect.runSync(
-						Effect.log("❌ Invalid request:", {
-							error: error.reason,
-						}),
-					);
-
-					return res.status(HttpBadRequest).json({
-						error: "Bad Request",
-						reason: error.reason,
-						details: error.details,
-					});
-				}
-
-				if (error instanceof UnsupportedMethodError) {
-					Effect.runSync(
-						Effect.log("❌ Unsupported method:", {
-							error: error.method,
-							supported: error.supported,
-						}),
-					);
-
-					// Tell the client the supported methods
-					res.setHeader("Allow", error.supported.join(", "));
-
-					return res.status(HttpMethodNotAllowed).json({
-						error: "Method Not Allowed",
-						method: error.method,
-						supported: error.supported,
-					});
-				}
-
-				if (error instanceof ParseError) {
-					Effect.runSync(
-						Effect.log("❌ Schema validation failed:", {
-							error: error.message,
-						}),
-					);
-
-					return res.status(HttpBadRequest).json({
-						error: "Invalid request format",
-						details: "Request does not match expected schema",
-					});
-				}
-
-				if (ConfigError.isConfigError(error)) {
-					Effect.runSync(
-						Effect.log("❌ Config error:", {
-							error: "Invalid config",
-						}),
-					);
-
-					return res.status(HttpBadRequest).json({
-						error: "Invalid config",
-						details: "Invalid config",
-					});
-				}
-
-				// TODO: why do i still have `Error` here?
-				// where does it come from? can i purge it?
-				// error satisfies never;
-				Effect.runSync(
-					Effect.log("❌ Request failed:", {
-						error: error.message,
-					}),
-				);
-
-				return res.status(HttpBadRequest).json(error.message);
+				return res.status(status).json({
+					error: "Notion request failure",
+					details: failEnvelope.details,
+				});
 			}
 
-			// finally...
-			// ❌ "Unexpected" errors
-			// ⚠️ aka "defects"
-			// ❗ aka "interruptions"
+			// finally, handle the "Unexpected" errors;
+			// aka "defects", "interruptions", etc
 			Effect.runSync(
 				Effect.log("❌ Unexpected error:", {
 					error: Cause.pretty(cause),
 				}),
 			);
 
-			return res.status(HttpServerError).json("Internal server error");
+			return res.status(HttpInternalServerError).json("Internal server error");
 		},
 	});
 }

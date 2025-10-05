@@ -11,18 +11,16 @@ import {
 	Schema,
 } from "effect";
 import { isParseError } from "effect/ParseResult";
-import { Notion } from "../api/notion.effect.ts";
-import { GenIdFromPullRequest } from "../api/notion.schema.ts";
+import { GetRequestSchema, type RequestEnvelope } from "#platform/schema.ts";
 import {
-	GetRequestSchema,
 	GitHubPullRequestWebhook,
 	PullRequestAction,
-} from "../api/schemas.ts";
-import handler, {
-	program,
-	SystemInfo,
-	VercelHttpContext,
-} from "../api/webhook.ts";
+} from "#services/github/schema.ts";
+import { Notion } from "#services/notion/api.ts";
+import { GenIdFromPullRequest } from "#services/notion/schema.ts";
+import { program } from "#services/program.ts";
+import { SystemInfo } from "#services/system-info/service.ts";
+import { VercelHttpContext } from "#services/vercel/types.ts";
 
 /** Application Config layer for testing */
 const AppConfigProviderTest = ConfigProvider.fromMap(
@@ -57,28 +55,25 @@ const SystemInfoTest = Layer.succeed(
 const MOCK_NOTION_PAGE_ID = "mock-notion-page-id" as const;
 
 /** Notion layer for testing */
-const NotionServiceTest = Layer.succeed(
-	Notion,
-	new Notion({
-		getByTaskIdProperty: Effect.fn("getByTaskIdProperty")(function* (
-			_taskId: string,
-		) {
-			return yield* Effect.succeed({
-				pageId: MOCK_NOTION_PAGE_ID,
-			});
-		}),
-
-		setNotionStatus: Effect.fn("setNotionStatus")(function* (
-			pageId: string,
-			status: string,
-		) {
-			return yield* Effect.succeed({
-				pageId,
-				newStatus: status,
-			});
-		}),
+const NotionServiceTest = Layer.succeed(Notion, {
+	getByTaskIdProperty: Effect.fn("getByTaskIdProperty")(function* (
+		_taskId: string,
+	) {
+		return yield* Effect.succeed({
+			pageId: MOCK_NOTION_PAGE_ID,
+		});
 	}),
-);
+
+	setNotionStatus: Effect.fn("setNotionStatus")(function* (
+		pageId: string,
+		status: string,
+	) {
+		return yield* Effect.succeed({
+			pageId,
+			newStatus: status,
+		});
+	}),
+});
 
 /** The relevant parts of VercelResponse used across various tests */
 const VercelHttpResponseMock = {
@@ -94,29 +89,32 @@ const VercelHttpResponseMock = {
 	},
 } as any as VercelResponse;
 
-const createVercelHttpRequestMock = ({
-	method,
-	headers = {},
-	query = {},
-	body,
-}: Partial<VercelRequest>) =>
+const createVercelHttpRequestMock = (requestEnvelope: RequestEnvelope) =>
 	({
-		method,
-		headers,
-		query,
-		body,
+		...requestEnvelope,
+		headers: {
+			...requestEnvelope.headers,
+
+			// conditionally inject defaults
+			...(requestEnvelope.method === "GET"
+				? {
+						"user-agent": "test-user-agent",
+					}
+				: {}),
+		},
 	}) as VercelRequest;
 
 // TODO: try TestClock ?
 
 describe("Webhook", () => {
 	describe("program", () => {
-		it.effect("should fail on bad input", () =>
+		it.effect("should die on bad request", () =>
 			Effect.gen(function* () {
 				const localVercelHttpContext = Layer.succeed(VercelHttpContext, {
 					request: createVercelHttpRequestMock({
 						method: "INVALID_METHOD",
-					}),
+						"user-agent": "invalid-user-agent",
+					} as any as RequestEnvelope),
 					response: VercelHttpResponseMock,
 				});
 
@@ -135,7 +133,11 @@ describe("Webhook", () => {
 
 				// Verify it's actually a failure
 				assert(Exit.isFailure(exit));
+
+				// vs DieType
 				assert(Cause.isFailType(exit.cause));
+
+				// We know it's a ParseError; we passed "INVALID_METHOD" above
 				assert(isParseError(exit.cause.error));
 			}),
 		);
@@ -143,13 +145,10 @@ describe("Webhook", () => {
 		it.effect("should show basic output plain GET", () =>
 			Effect.gen(function* () {
 				const arbitraryHttpGet = Arbitrary.make(GetRequestSchema);
-				const [req] = FastCheck.sample(arbitraryHttpGet, 1);
+				const [reqSample] = FastCheck.sample(arbitraryHttpGet, 1);
 
 				const localVercelHttpContext = Layer.succeed(VercelHttpContext, {
-					request: createVercelHttpRequestMock({
-						method: req.method,
-						query: req.query,
-					}),
+					request: createVercelHttpRequestMock(reqSample),
 					response: VercelHttpResponseMock,
 				});
 
@@ -178,9 +177,8 @@ describe("Webhook", () => {
 						assert.isDefined(result);
 					},
 
-					onFailure: (cause) => {
-						// WARN: should never fail given the test data
-						assert.notExists(cause);
+					onFailure: () => {
+						assert.fail("Should not fail");
 					},
 				});
 			}),
@@ -240,6 +238,9 @@ describe("Webhook", () => {
 										"x-github-event": "pull_request",
 										"x-github-delivery": "test-delivery-123",
 										"content-type": "application/json",
+
+										// TODO: test signature validation?
+										// "x-hub-signature-256": "sha256=abc123def456",
 									},
 									body: webhookPayload,
 								}),
@@ -279,11 +280,8 @@ describe("Webhook", () => {
 										})),
 									);
 								},
-								onFailure: (cause) => {
-									// console.error({ cause });
-
-									// WARN: should never fail given the test data
-									assert.notExists(cause);
+								onFailure: () => {
+									assert.fail("Should not fail for provided data");
 								},
 							});
 						}),
@@ -291,89 +289,6 @@ describe("Webhook", () => {
 				}
 			});
 		});
-	});
-
-	describe("vercel fn handler", () => {
-		// ensure that basic GET requests work
-		// TODO: probably need to rework handler a little to make this more testable?
-		it.todo("should handle a GET request", () =>
-			it.flakyTest(
-				// WARN: this isn't actually flaky;
-				// i'm just showing off the flakyTest feature (for kitchen sink demo)
-				Effect.gen(function* () {
-					const mockRequest = {
-						method: "GET",
-						headers: {},
-						query: {},
-					} as any as VercelRequest;
-
-					const HttpOk = 200 as const;
-					const mockResponse = {
-						statusCode: HttpOk,
-						status: (_code: number) => ({
-							json: (_data: any) => Promise.resolve(),
-						}),
-						json: (_data: any) => Promise.resolve(),
-						// biome-ignore lint/suspicious/noEmptyBlockStatements: Mock function doesn't need implementation
-						setHeader: () => {},
-						get headersSent() {
-							return false;
-						},
-					} as any as VercelResponse;
-
-					// Test the handler
-					// TODO: this ... fails right? like, because i can't provide the program with reqs... hmm
-					yield* Effect.tryPromise({
-						try: () => handler(mockRequest, mockResponse),
-						catch: (error) => new Error(`Handler failed: ${error}`),
-					});
-
-					// Assert the results using Effect's assert
-					// TODO: this is wrong, i'm just asserting against constants lol.
-					// assert.strictEqual(mockResponse.statusCode, HttpOk);
-					// assert.isDefined(mockResponse.json);
-				}),
-
-				// NOTE: since it's flaky, just
-				// try until timeout (or success 🤞)
-				"4.2 seconds", // timeout
-			),
-		);
-
-		// TODO: probably need to rework handler a lil to make this more testable?
-		it.todo("should handle malformed webhook gracefully", () =>
-			Effect.gen(function* () {
-				const malformedRequest = {
-					method: "POST" as const,
-					headers: { "x-github-event": "invalid_event" },
-					body: {
-						/* malformed data */
-					},
-				} as any as VercelRequest;
-
-				const HttpOk = 200 as const;
-				const mockResponse = {
-					statusCode: HttpOk,
-					status: (_code: number) => ({
-						json: (_data: any) => Promise.resolve(),
-					}),
-					json: (_data: any) => Promise.resolve(),
-					// biome-ignore lint/suspicious/noEmptyBlockStatements: Mock function doesn't need implementation
-					setHeader: () => {},
-					get headersSent() {
-						return false;
-					},
-				} as any as VercelResponse;
-
-				yield* Effect.tryPromise({
-					try: () => handler(malformedRequest, mockResponse),
-					catch: (error) => {
-						// Handler shouldn't throw an error
-						assert.notExists(error);
-					},
-				});
-			}),
-		);
 	});
 });
 
