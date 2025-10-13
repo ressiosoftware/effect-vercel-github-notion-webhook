@@ -6,6 +6,8 @@ export const AppConfig = Config.all({
 	githubWebhookSecret: Config.redacted("GITHUB_WEBHOOK_SECRET"),
 	notionToken: Config.redacted("NOTION_TOKEN"),
 	notionDatabaseId: Config.string("NOTION_DATABASE_ID"),
+	notionTaskIdProperty: Config.string("NOTION_TASK_ID_PROPERTY"),
+	notionTaskIdPrefix: Config.string("NOTION_TASK_ID_PREFIX"),
 
 	// tertiary information
 	nodeEnv: Config.withDefault(Config.string("NODE_ENV"), "development"),

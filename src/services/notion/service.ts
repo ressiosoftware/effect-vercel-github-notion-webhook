@@ -4,13 +4,21 @@ import { Effect, Layer, Redacted, Schema } from "effect";
 import { AppConfig } from "#platform/schema.ts";
 import { Notion } from "#services/notion/api.ts";
 import { NotionRequestFailureError } from "#services/notion/errors.ts";
-import { GenIdNumberFromString } from "#services/notion/schema.ts";
+import { makeGenIdNumberFromString } from "#services/notion/schema.ts";
 
 export const NotionLive = Layer.effect(
 	Notion,
 
 	Effect.gen(function* () {
-		const { notionToken, notionDatabaseId } = yield* AppConfig;
+		const {
+			notionToken,
+			notionDatabaseId,
+			notionTaskIdProperty,
+			notionTaskIdPrefix,
+		} = yield* AppConfig;
+
+		// Create the schema with the prefix from config
+		const GenIdNumberFromString = makeGenIdNumberFromString(notionTaskIdPrefix);
 
 		const notion = new Client({
 			auth: Redacted.value(notionToken),
@@ -120,8 +128,7 @@ export const NotionLive = Layer.effect(
 							filter: {
 								and: [
 									{
-										property: "Task ID", // name of property
-										// TODO: ^^ hardcoded for now
+										property: notionTaskIdProperty, // name of property from environment variable
 
 										// the generated IDs are a called "unique_id" in notion's API
 										// biome-ignore lint/style/useNamingConvention: Notion API uses snake_case

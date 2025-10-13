@@ -15,7 +15,7 @@ import {
 	GitHubPullRequestWebhook,
 } from "#services/github/schema.ts";
 import { Notion } from "#services/notion/api.ts";
-import { GenIdFromPullRequest } from "#services/notion/schema.ts";
+import { makeGenIdFromPullRequest } from "#services/notion/schema.ts";
 import { SystemInfo } from "#services/system-info/service.ts";
 
 const sch = Schema.RedactedFromSelf(Schema.String);
@@ -157,6 +157,9 @@ export const handlePostRequest = Effect.fn("handlePostRequest")(function* (
 ) {
 	yield* Effect.log("📝 Processing POST request - GitHub webhook");
 
+	// Get config to access task ID prefix
+	const config = yield* AppConfig;
+
 	// Validate it's a GitHub pull request webhook
 	if (request.headers["x-github-event"] !== "pull_request") {
 		return yield* Effect.fail(
@@ -183,6 +186,11 @@ export const handlePostRequest = Effect.fn("handlePostRequest")(function* (
 
 	// Process the webhook based on action
 	// const result = yield* processWebhookAction(webhook);
+
+	// Create the schema with the prefix from config
+	const GenIdFromPullRequest = makeGenIdFromPullRequest(
+		config.notionTaskIdPrefix,
+	);
 
 	const genIdMatches = yield* Schema.decode(GenIdFromPullRequest)(
 		webhook.pull_request,

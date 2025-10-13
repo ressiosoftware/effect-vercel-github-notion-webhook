@@ -7,7 +7,9 @@
     cp .env.example .env.local
     ```
 
-3. run local development otel server
+3. configure required environment variables (see [environment variables](#environment-variables) section below)
+
+4. run local development otel server
 
     ```bash
     pnpm otel:dev
@@ -16,11 +18,42 @@
     # docker run -p 3000:3000 -p 4317:4317 -p 4318:4318 --rm -it docker.io/grafana/otel-lgtm
     ```
 
-4. `pnpm dev:run`
+5. `pnpm dev:run`
 
-5. go to `localhost:3001:/api/webhook` to test the webhook
+6. go to `localhost:3001:/api/webhook` to test the webhook
 
-6. view the otel traces in `localhost:3000/explore` (see [documentation below](#opentelemetry))
+7. view the otel traces in `localhost:3000/explore` (see [documentation below](#opentelemetry))
+
+# environment variables
+
+## required
+
+| variable                             | description                                      | example                           |
+| ------------------------------------ | ------------------------------------------------ | --------------------------------- |
+| `GITHUB_WEBHOOK_SECRET`              | Secret for validating GitHub webhook signatures  | `your-webhook-secret`             |
+| `NOTION_TOKEN`                       | Notion API token for accessing your workspace    | `secret_abc123...`                |
+| `NOTION_DATABASE_ID`                 | ID of the Notion database to update              | `abc123def456...`                 |
+| `NOTION_TASK_ID_PROPERTY`            | Name of the Notion property containing task IDs  | `Task ID`                         |
+| `NOTION_TASK_ID_PREFIX`              | Prefix used for task IDs (e.g., GEN, JIRA, TASK) | `GEN`                             |
+| `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` | OpenTelemetry traces endpoint for observability  | `http://localhost:4318/v1/traces` |
+
+## optional (with defaults)
+
+| variable      | description                       | default       |
+| ------------- | --------------------------------- | ------------- |
+| `NODE_ENV`    | Node environment                  | `development` |
+| `API_VERSION` | API version for health check info | `0.0.0`       |
+
+## notion configuration
+
+The `NOTION_TASK_ID_PROPERTY` should match the exact name of the property in your Notion database that contains unique task IDs (typically a "Unique ID" property type).
+
+The `NOTION_TASK_ID_PREFIX` is used to extract task IDs from GitHub PR titles and branch names. For example:
+
+- If set to `GEN`, it will match patterns like `GEN-1234`
+- If set to `JIRA`, it will match patterns like `JIRA-5678`
+
+When a PR is opened/edited with a matching task ID in its title or branch name, the corresponding Notion page will be updated.
 
 # run tests
 

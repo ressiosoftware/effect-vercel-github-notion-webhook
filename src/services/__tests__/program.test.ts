@@ -17,7 +17,7 @@ import {
 	PullRequestAction,
 } from "#services/github/schema.ts";
 import { Notion } from "#services/notion/api.ts";
-import { GenIdFromPullRequest } from "#services/notion/schema.ts";
+import { makeGenIdFromPullRequest } from "#services/notion/schema.ts";
 import { program } from "#services/program.ts";
 import { SystemInfo } from "#services/system-info/service.ts";
 import { VercelHttpContext } from "#services/vercel/types.ts";
@@ -32,6 +32,8 @@ const AppConfigProviderTest = ConfigProvider.fromMap(
 		["OTEL_EXPORTER_OTLP_TRACES_ENDPOINT", "http://localhost:4318/v1/traces"],
 		["NOTION_TOKEN", "notion-token-test"],
 		["NOTION_DATABASE_ID", "notion-database-id-test"],
+		["NOTION_TASK_ID_PROPERTY", "Task ID"],
+		["NOTION_TASK_ID_PREFIX", "GEN"],
 	]),
 );
 
@@ -261,6 +263,8 @@ describe("Webhook", () => {
 								),
 							);
 
+							// Create the schema with the test prefix
+							const GenIdFromPullRequest = makeGenIdFromPullRequest("GEN");
 							const expectedGenIds = yield* Schema.decode(GenIdFromPullRequest)(
 								webhookData.pull_request,
 							);
