@@ -15,6 +15,7 @@ export const NotionLive = Layer.effect(
 			notionDatabaseId,
 			notionTaskIdProperty,
 			notionTaskIdPrefix,
+			notionDryRun,
 		} = yield* AppConfig;
 
 		// Create the schema with the prefix from config
@@ -175,6 +176,21 @@ export const NotionLive = Layer.effect(
 				pageId: string,
 				status: string,
 			) {
+				// TODO: there's definitely a cleverer way to do this swapperoo;
+				// probably conditionally swapping out the notion client
+				// or the layer rather than conditionally checking config here?
+				if (notionDryRun) {
+					yield* Effect.log("🪵 [dry-run] Notion#setNotionStatus() skipped", {
+						pageId,
+						status,
+					});
+
+					return {
+						pageId,
+						newStatus: status,
+					};
+				}
+
 				yield* Effect.tryPromise({
 					try: () =>
 						notion.pages.update({

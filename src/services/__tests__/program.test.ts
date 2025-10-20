@@ -34,6 +34,7 @@ const AppConfigProviderTest = ConfigProvider.fromMap(
 		["NOTION_DATABASE_ID", "notion-database-id-test"],
 		["NOTION_TASK_ID_PROPERTY", "Task ID"],
 		["NOTION_TASK_ID_PREFIX", "GEN"],
+		["NOTION_DRY_RUN", "false"],
 	]),
 );
 

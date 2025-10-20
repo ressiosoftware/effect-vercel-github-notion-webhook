@@ -9,6 +9,9 @@ export const AppConfig = Config.all({
 	notionTaskIdProperty: Config.string("NOTION_TASK_ID_PROPERTY"),
 	notionTaskIdPrefix: Config.string("NOTION_TASK_ID_PREFIX"),
 
+	// toggles
+	notionDryRun: Config.withDefault(Config.boolean("NOTION_DRY_RUN"), false),
+
 	// tertiary information
 	nodeEnv: Config.withDefault(Config.string("NODE_ENV"), "development"),
 	apiVersion: Config.withDefault(Config.string("API_VERSION"), "0.0.0"),
