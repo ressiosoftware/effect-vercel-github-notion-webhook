@@ -8,6 +8,7 @@ export const AppConfig = Config.all({
 	notionDatabaseId: Config.string("NOTION_DATABASE_ID"),
 	notionTaskIdProperty: Config.string("NOTION_TASK_ID_PROPERTY"),
 	notionTaskIdPrefix: Config.string("NOTION_TASK_ID_PREFIX"),
+	datadogApiKey: Config.option(Config.redacted("DD_API_KEY")),
 
 	// toggles
 	notionDryRun: Config.withDefault(Config.boolean("NOTION_DRY_RUN"), false),

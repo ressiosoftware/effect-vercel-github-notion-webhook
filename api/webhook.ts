@@ -7,7 +7,16 @@ import {
 	type SpanExporter,
 } from "@opentelemetry/sdk-trace-base";
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { Cause, ConfigError, Effect, Exit, Layer } from "effect";
+import {
+	Cause,
+	ConfigError,
+	Effect,
+	Exit,
+	Layer,
+	Option,
+	pipe,
+	Redacted,
+} from "effect";
 import { ParseError } from "effect/ParseResult";
 import { AppConfig } from "#platform/schema.ts";
 import {
@@ -28,11 +37,18 @@ import { VercelHttpContext } from "#services/vercel/types.ts";
  */
 const NodeSdkTracedLive = Layer.unwrapEffect(
 	Effect.gen(function* () {
-		const { nodeEnv, otelExporterOtlpTracesEndpoint } = yield* AppConfig;
+		const {
+			nodeEnv,
+			otelExporterOtlpTracesEndpoint,
+			datadogApiKey: optionalRedactedDdApiKey,
+		} = yield* AppConfig;
 
 		yield* Effect.log("🔍 Tracing live", {
 			nodeEnv,
 		});
+
+		// TODO: (probably) ripe for just making a schema that parses AppConfig values
+		const ddApiKey = pipe(optionalRedactedDdApiKey, Option.getOrNull);
 
 		return NodeSdk.layer(() => ({
 			resource: { serviceName: "api/webhook.ts#TracingLive" },
@@ -42,6 +58,14 @@ const NodeSdkTracedLive = Layer.unwrapEffect(
 						// going to use `as SpanExporter` for now
 						(new OTLPTraceExporter({
 							url: otelExporterOtlpTracesEndpoint,
+
+							// inject headers (eg for desired APM)
+							headers: {
+								// for datadog APM
+								...(ddApiKey && {
+									"dd-api-key": Redacted.value(ddApiKey),
+								}),
+							},
 						}) as SpanExporter)
 					: new ConsoleSpanExporter(),
 			),

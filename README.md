@@ -39,10 +39,14 @@
 
 ## optional (with defaults)
 
-| variable      | description                       | default       |
-| ------------- | --------------------------------- | ------------- |
-| `NODE_ENV`    | Node environment                  | `development` |
-| `API_VERSION` | API version for health check info | `0.0.0`       |
+| variable        | description                                               | default       |
+| --------------- | --------------------------------------------------------- | ------------- |
+| `DD_API_KEY`    | Datadog API key added to OTLP trace exporter headers      | `(unset)`     |
+| `NOTION_DRY_RUN`| Skip Notion mutations while still logging intended writes | `false`       |
+| `NODE_ENV`      | Node environment                                          | `development` |
+| `API_VERSION`   | API version reported by the health endpoint               | `0.0.0`       |
+
+Setting `DD_API_KEY` automatically attaches the secret as the `dd-api-key` header on outgoing OTLP trace exports. The value stays redacted inside the Effect config until it is sent.
 
 ## notion configuration
 
