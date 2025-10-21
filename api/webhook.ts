@@ -211,9 +211,7 @@ function handleFailType(cause: Cause.Fail<ProgramError>) {
 		};
 	}
 
-	// exhaustiveness check
-	error satisfies never;
-	throw new Error("Unreachable (unhandled failure)");
+	throw new Error(`Unreachable (unhandled FailType: ${error satisfies never})`);
 }
 
 function handleExit({
