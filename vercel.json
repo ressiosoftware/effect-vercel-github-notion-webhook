@@ -1,7 +1,8 @@
 {
-  "functions": {
-    "api/webhook.ts": {
-      "maxDuration": 10
-    }
-  }
+	"functions": {
+		"api/webhook.ts": {
+			"includeFiles": "src/**/*.ts",
+			"maxDuration": 10
+		}
+	}
 }
