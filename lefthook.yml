@@ -6,10 +6,10 @@ pre-commit:
             run: pnpm types:check
         lint:
             glob: "*.{js,ts,jsx,tsx,json}"
-            run: pnpm lint:check:staged
+            run: pnpm lint:fix:staged
         format:
             glob: "*.{js,ts,jsx,tsx,json}"
-            run: pnpm format:check:staged
+            run: pnpm format:fix:staged
 pre-push:
     parallel: false
     commands:
