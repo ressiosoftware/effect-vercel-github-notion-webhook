@@ -58,6 +58,7 @@
 		"@notionhq/client": "catalog:notion",
 		"@opentelemetry/api": "catalog:effect",
 		"@opentelemetry/exporter-trace-otlp-http": "catalog:effect",
+		"@opentelemetry/sdk-metrics": "catalog:effect",
 		"@opentelemetry/sdk-trace-base": "catalog:effect",
 		"@opentelemetry/sdk-trace-web": "catalog:effect",
 		"@vercel/node": "catalog:vercel",

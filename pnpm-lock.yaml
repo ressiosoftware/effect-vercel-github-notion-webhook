@@ -34,6 +34,9 @@ catalogs:
     '@opentelemetry/exporter-trace-otlp-http':
       specifier: ^0.206.0
       version: 0.206.0
+    '@opentelemetry/sdk-metrics':
+      specifier: ^2.1.0
+      version: 2.1.0
     '@opentelemetry/sdk-trace-base':
       specifier: ^2.1.0
       version: 2.1.0
@@ -94,6 +97,9 @@ importers:
       '@opentelemetry/exporter-trace-otlp-http':
         specifier: catalog:effect
         version: 0.206.0(@opentelemetry/api@1.9.0)
+      '@opentelemetry/sdk-metrics':
+        specifier: catalog:effect
+        version: 2.1.0(@opentelemetry/api@1.9.0)
       '@opentelemetry/sdk-trace-base':
         specifier: catalog:effect
         version: 2.1.0(@opentelemetry/api@1.9.0)

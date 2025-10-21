@@ -17,6 +17,7 @@ catalogs:
         "@opentelemetry/exporter-trace-otlp-http": ^0.206.0
         "@opentelemetry/sdk-trace-base": ^2.1.0
         "@opentelemetry/sdk-trace-web": ^2.1.0
+        "@opentelemetry/sdk-metrics": "^2.1.0"
         effect: ^3.18.4
     env:
         "@dotenvx/dotenvx": ^1.51.0
