@@ -42,6 +42,7 @@
     "@effect/language-service": "^0.40.0",
     "@effect/vitest": "catalog:effect",
     "@types/node": "^22.0.0",
+    "fast-check": "catalog:testing",
     "lefthook": "catalog:devtools",
     "msw": "catalog:testing",
     "typescript": "^5.9.2",

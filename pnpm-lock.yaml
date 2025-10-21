@@ -46,6 +46,9 @@ catalogs:
       specifier: ^5.1.0
       version: 5.1.0
   testing:
+    fast-check:
+      specifier: ^3.23.2
+      version: 3.23.2
     msw:
       specifier: ^2.11.2
       version: 2.11.2
@@ -104,6 +107,9 @@ importers:
       '@types/node':
         specifier: ^22.0.0
         version: 22.18.5
+      fast-check:
+        specifier: catalog:testing
+        version: 3.23.2
       lefthook:
         specifier: catalog:devtools
         version: 1.13.6

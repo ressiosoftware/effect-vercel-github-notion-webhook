@@ -1,32 +1,33 @@
 catalogMode: prefer
 
 catalogs:
-  devtools:
-    '@biomejs/biome': ^2.2.4
-    lefthook: ^1.13.6
-    ultracite: ^5.4.5
-  effect:
-    '@effect/experimental': ^0.54.6
-    '@effect/opentelemetry': ^0.52.2
-    '@effect/vitest': ^0.25.1
-    '@opentelemetry/exporter-trace-otlp-http': ^0.205.0
-    '@opentelemetry/sdk-trace-base': ^2.1.0
-    '@opentelemetry/sdk-trace-web': ^2.1.0
-    effect: ^3.17.13
-  env:
-    '@dotenvx/dotenvx': ^1.49.1
-  notion:
-    '@notionhq/client': ^5.1.0
-  testing:
-    msw: ^2.11.2
-    vitest: ^3.2.4
-  vercel:
-    '@vercel/node': ^5.3.22
+    devtools:
+        "@biomejs/biome": ^2.2.4
+        lefthook: ^1.13.6
+        ultracite: ^5.4.5
+    effect:
+        "@effect/experimental": ^0.54.6
+        "@effect/opentelemetry": ^0.52.2
+        "@effect/vitest": ^0.25.1
+        "@opentelemetry/exporter-trace-otlp-http": ^0.205.0
+        "@opentelemetry/sdk-trace-base": ^2.1.0
+        "@opentelemetry/sdk-trace-web": ^2.1.0
+        effect: ^3.17.13
+    env:
+        "@dotenvx/dotenvx": ^1.49.1
+    notion:
+        "@notionhq/client": ^5.1.0
+    testing:
+        msw: ^2.11.2
+        vitest: ^3.2.4
+        "fast-check": ^3.23.2
+    vercel:
+        "@vercel/node": ^5.3.22
 
 cleanupUnusedCatalogs: true
 
 minimumReleaseAge: 1440
 
 onlyBuiltDependencies:
-  - esbuild
-  - msw
+    - esbuild
+    - msw
