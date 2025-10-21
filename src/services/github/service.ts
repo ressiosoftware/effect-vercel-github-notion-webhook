@@ -1,3 +1,4 @@
+import { createHmac } from "node:crypto";
 import { Effect, Redacted, Schema } from "effect";
 import {
 	AppConfig,
@@ -23,11 +24,9 @@ type RedactedString = typeof sch.Type;
 
 export const validateWebhookSignature = Effect.fn("validateWebhookSignature")(
 	function* (body: unknown, signature: string, secret: RedactedString) {
-		const crypto = yield* Effect.sync(() => require("node:crypto"));
 		const expectedSignature = yield* Effect.sync(
 			() =>
-				`sha256=${crypto
-					.createHmac("sha256", Redacted.value(secret))
+				`sha256=${createHmac("sha256", Redacted.value(secret))
 					.update(JSON.stringify(body))
 					.digest("hex")}`,
 		);
