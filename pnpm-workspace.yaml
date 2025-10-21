@@ -1,28 +1,33 @@
+catalog:
+    typescript: ^5.9.3
+
 catalogMode: prefer
 
 catalogs:
     devtools:
-        "@biomejs/biome": ^2.2.4
+        "@biomejs/biome": ^2.2.6
         lefthook: ^1.13.6
-        ultracite: ^5.4.5
+        ultracite: ^5.6.4
     effect:
-        "@effect/experimental": ^0.54.6
-        "@effect/opentelemetry": ^0.52.2
-        "@effect/vitest": ^0.25.1
-        "@opentelemetry/exporter-trace-otlp-http": ^0.205.0
+        "@effect/language-service": ^0.45.1
+        "@effect/experimental": ^0.56.0
+        "@effect/opentelemetry": ^0.58.0
+        "@effect/vitest": ^0.26.0
+        "@opentelemetry/exporter-trace-otlp-http": ^0.206.0
         "@opentelemetry/sdk-trace-base": ^2.1.0
         "@opentelemetry/sdk-trace-web": ^2.1.0
-        effect: ^3.17.13
+        effect: ^3.18.4
     env:
-        "@dotenvx/dotenvx": ^1.49.1
+        "@dotenvx/dotenvx": ^1.51.0
     notion:
-        "@notionhq/client": ^5.1.0
+        "@notionhq/client": ^5.3.0
     testing:
-        msw: ^2.11.2
+        fast-check: ^3.23.2
+        msw: ^2.11.6
         vitest: ^3.2.4
-        "fast-check": ^3.23.2
     vercel:
-        "@vercel/node": ^5.3.22
+        "@vercel/node": ^5.4.1
+        vercel: ^48.4.1
 
 cleanupUnusedCatalogs: true
 

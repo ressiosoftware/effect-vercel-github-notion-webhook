@@ -14,7 +14,7 @@
       "onFail": "download"
     }
   },
-  "packageManager": "pnpm@10.16.0",
+  "packageManager": "pnpm@10.18.3",
   "scripts": {
     "run:dev": "NODE_OPTIONS='--inspect' dotenvx run --convention=nextjs vercel dev",
     "otel:dev": "docker run -p 3000:3000 -p 4317:4317 -p 4318:4318 --rm -it docker.io/grafana/otel-lgtm",
@@ -39,15 +39,15 @@
   },
   "devDependencies": {
     "@biomejs/biome": "catalog:devtools",
-    "@effect/language-service": "^0.40.0",
+    "@effect/language-service": "catalog:effect",
     "@effect/vitest": "catalog:effect",
     "@types/node": "^22.0.0",
     "fast-check": "catalog:testing",
     "lefthook": "catalog:devtools",
     "msw": "catalog:testing",
-    "typescript": "^5.9.2",
+    "typescript": "catalog:",
     "ultracite": "catalog:devtools",
-    "vercel": "^48.0.2",
+    "vercel": "catalog:vercel",
     "vitest": "catalog:testing"
   },
   "dependencies": {
