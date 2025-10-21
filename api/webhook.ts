@@ -4,6 +4,7 @@ import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-http";
 import {
 	BatchSpanProcessor,
 	ConsoleSpanExporter,
+	type SpanExporter,
 } from "@opentelemetry/sdk-trace-base";
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { Cause, ConfigError, Effect, Exit, Layer } from "effect";
@@ -33,15 +34,17 @@ const NodeSdkTracedLive = Layer.unwrapEffect(
 			nodeEnv,
 		});
 
+		const exporter = (
+			otelExporterOtlpTracesEndpoint
+				? new OTLPTraceExporter({
+						url: otelExporterOtlpTracesEndpoint,
+					})
+				: new ConsoleSpanExporter()
+		) satisfies SpanExporter;
+
 		return NodeSdk.layer(() => ({
 			resource: { serviceName: "api/webhook.ts#TracingLive" },
-			spanProcessor: new BatchSpanProcessor(
-				otelExporterOtlpTracesEndpoint
-					? new OTLPTraceExporter({
-							url: otelExporterOtlpTracesEndpoint,
-						})
-					: new ConsoleSpanExporter(),
-			),
+			spanProcessor: new BatchSpanProcessor(exporter),
 		}));
 	}),
 );
