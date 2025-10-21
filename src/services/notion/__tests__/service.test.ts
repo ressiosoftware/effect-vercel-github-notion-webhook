@@ -1,6 +1,6 @@
 import { assert, describe, it } from "@effect/vitest";
-import { http } from "msw";
 import { ConfigProvider, Effect } from "effect";
+import { http } from "msw";
 import { MOCK_NOTION_PAGE_ID } from "#mocks/msw-handlers.ts";
 import { server } from "#mocks/msw-server.ts";
 import { Notion } from "#services/notion/api.ts";

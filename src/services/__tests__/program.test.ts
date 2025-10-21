@@ -212,21 +212,16 @@ describe("Webhook", () => {
 							const webhookPayload = {
 								...webhookData,
 								action: "opened", // Set specific action for deterministic testing
-								// biome-ignore lint/style/useNamingConvention: GitHub API uses snake_case
 								pull_request: {
 									...webhookData.pull_request,
 
 									// TODO: letting Arbitrary/FastCheck take the wheel seems to
 									// cause issues - likely string vs Date parsing - so figure
 									// that shit out. we shouldn't need to do this vv.
-									// biome-ignore lint/style/useNamingConvention: GitHub API uses snake_case
 									created_at: webhookData.pull_request.created_at.toISOString(),
-									// biome-ignore lint/style/useNamingConvention: GitHub API uses snake_case
 									updated_at: webhookData.pull_request.updated_at.toISOString(),
-									// biome-ignore lint/style/useNamingConvention: GitHub API uses snake_case
 									closed_at:
 										webhookData.pull_request.closed_at?.toISOString() || null,
-									// biome-ignore lint/style/useNamingConvention: GitHub API uses snake_case
 									merged_at:
 										webhookData.pull_request.merged_at?.toISOString() || null,
 								},

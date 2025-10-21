@@ -1,4 +1,3 @@
-import { createHmac } from "node:crypto";
 import { Effect, Redacted, Schema } from "effect";
 import {
 	AppConfig,
@@ -18,6 +17,7 @@ import {
 import { Notion } from "#services/notion/api.ts";
 import { makeGenIdFromPullRequest } from "#services/notion/schema.ts";
 import { SystemInfo } from "#services/system-info/service.ts";
+import { createHmac } from "node:crypto";
 
 const sch = Schema.RedactedFromSelf(Schema.String);
 type RedactedString = typeof sch.Type;

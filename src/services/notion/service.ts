@@ -59,20 +59,13 @@ export const NotionLive = Layer.effect(
 				description: Schema.Array(Schema.Unknown),
 				parent: Schema.Struct({
 					type: Schema.Literal("block_id"),
-					// biome-ignore lint/style/useNamingConvention: Notion API uses snake_case
 					block_id: Schema.String,
 				}),
-				// biome-ignore lint/style/useNamingConvention: Notion API uses snake_case
 				is_inline: Schema.Boolean,
-				// biome-ignore lint/style/useNamingConvention: Notion API uses snake_case
 				in_trash: Schema.Boolean,
-				// biome-ignore lint/style/useNamingConvention: Notion API uses snake_case
 				is_locked: Schema.Boolean,
-				// biome-ignore lint/style/useNamingConvention: Notion API uses snake_case
 				created_time: Schema.DateFromString,
-				// biome-ignore lint/style/useNamingConvention: Notion API uses snake_case
 				last_edited_time: Schema.DateFromString,
-				// biome-ignore lint/style/useNamingConvention: Notion API uses snake_case
 				data_sources: Schema.Array(
 					Schema.Struct({
 						id: Schema.String,
@@ -82,9 +75,7 @@ export const NotionLive = Layer.effect(
 				icon: Schema.NullOr(Schema.String),
 				cover: Schema.NullOr(Schema.String),
 				url: Schema.String,
-				// biome-ignore lint/style/useNamingConvention: Notion API uses snake_case
 				public_url: Schema.NullOr(Schema.String),
-				// biome-ignore lint/style/useNamingConvention: Notion API uses snake_case
 				request_id: Schema.String,
 			});
 
@@ -123,7 +114,6 @@ export const NotionLive = Layer.effect(
 				const result = yield* Effect.tryPromise({
 					try: () =>
 						notion.dataSources.query({
-							// biome-ignore lint/style/useNamingConvention: Notion API uses snake_case
 							data_source_id: dataSourceId,
 
 							filter: {
@@ -132,7 +122,6 @@ export const NotionLive = Layer.effect(
 										property: notionTaskIdProperty, // name of property from environment variable
 
 										// the generated IDs are a called "unique_id" in notion's API
-										// biome-ignore lint/style/useNamingConvention: Notion API uses snake_case
 										unique_id: {
 											equals: taskIdNumber,
 										},
@@ -140,7 +129,6 @@ export const NotionLive = Layer.effect(
 								],
 							},
 
-							// biome-ignore lint/style/useNamingConvention: Notion API uses snake_case
 							filter_properties: [
 								// only get subset of properties
 								"title",
@@ -194,10 +182,8 @@ export const NotionLive = Layer.effect(
 				yield* Effect.tryPromise({
 					try: () =>
 						notion.pages.update({
-							// biome-ignore lint/style/useNamingConvention: Notion API uses snake_case
 							page_id: pageId,
 							properties: {
-								// biome-ignore lint/style/useNamingConvention: Notion API uses snake_case
 								Status: {
 									status: {
 										name: status,

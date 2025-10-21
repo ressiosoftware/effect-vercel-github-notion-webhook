@@ -15,20 +15,13 @@ export const handlers = [
 			description: [],
 			parent: {
 				type: "block_id",
-				// biome-ignore lint/style/useNamingConvention: Notion API uses snake_case
 				block_id: "block-id-test",
 			},
-			// biome-ignore lint/style/useNamingConvention: Notion API uses snake_case
 			is_inline: false,
-			// biome-ignore lint/style/useNamingConvention: Notion API uses snake_case
 			in_trash: false,
-			// biome-ignore lint/style/useNamingConvention: Notion API uses snake_case
 			is_locked: false,
-			// biome-ignore lint/style/useNamingConvention: Notion API uses snake_case
 			created_time: new Date().toISOString(),
-			// biome-ignore lint/style/useNamingConvention: Notion API uses snake_case
 			last_edited_time: new Date().toISOString(),
-			// biome-ignore lint/style/useNamingConvention: Notion API uses snake_case
 			data_sources: [
 				{
 					id: MOCK_DATA_SOURCE_ID,
@@ -38,9 +31,7 @@ export const handlers = [
 			icon: null,
 			cover: null,
 			url: "https://notion.so/test",
-			// biome-ignore lint/style/useNamingConvention: Notion API uses snake_case
 			public_url: null,
-			// biome-ignore lint/style/useNamingConvention: Notion API uses snake_case
 			request_id: "request-id-test",
 		}),
 	),

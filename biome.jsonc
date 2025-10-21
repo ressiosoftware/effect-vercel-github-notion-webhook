@@ -11,6 +11,11 @@
 			"bracketSameLine": false
 		}
 	},
+	"json": {
+		"formatter": {
+			"indentStyle": "tab" // SIGH: ensures the .editorconfig setting is used even when filetype formatters defined
+		}
+	},
 	"linter": {
 		"rules": {
 			"style": {

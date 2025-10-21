@@ -1,21 +1,21 @@
 {
-  "compilerOptions": {
-    "target": "ES2022",
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
-    "strict": true,
-    "skipLibCheck": true,
-    "noEmit": true,
-    "esModuleInterop": true,
-    "types": ["node"],
-    "plugins": [
-      {
-        "name": "@effect/language-service"
-      }
-    ],
-    "allowImportingTsExtensions": true,
-    "strictNullChecks": true
-  },
-  "include": ["api", "src", "test"],
-  "exclude": ["node_modules"]
+	"compilerOptions": {
+		"target": "ES2022",
+		"module": "NodeNext",
+		"moduleResolution": "NodeNext",
+		"strict": true,
+		"skipLibCheck": true,
+		"noEmit": true,
+		"esModuleInterop": true,
+		"types": ["node"],
+		"plugins": [
+			{
+				"name": "@effect/language-service"
+			}
+		],
+		"allowImportingTsExtensions": true,
+		"strictNullChecks": true
+	},
+	"include": ["api", "src", "test"],
+	"exclude": ["node_modules"]
 }

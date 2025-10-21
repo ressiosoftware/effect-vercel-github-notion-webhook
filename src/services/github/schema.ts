@@ -29,17 +29,14 @@ export const GitHubUser = Schema.Struct({
 	id: Schema.Number.annotations({
 		arbitrary: () => (fc) => fc.integer({ min: 1, max: 1_000_000 }),
 	}),
-	// biome-ignore lint/style/useNamingConvention: GitHub API uses snake_case
 	node_id: Schema.String.annotations({
 		arbitrary: () => (fc) =>
 			fc.constantFrom("user_node1", "user_node2", "user_node3"),
 	}),
-	// biome-ignore lint/style/useNamingConvention: GitHub API uses snake_case
 	avatar_url: Schema.String.annotations({
 		arbitrary: () => (fc) =>
 			fc.constant("https://github.com/images/error/testuser_happy.gif"),
 	}),
-	// biome-ignore lint/style/useNamingConvention: GitHub API uses snake_case
 	gravatar_id: Schema.NullOr(Schema.String),
 	url: Schema.String.annotations({
 		arbitrary: () => (fc) =>
@@ -49,7 +46,6 @@ export const GitHubUser = Schema.Struct({
 				"https://api.github.com/users/admin",
 			),
 	}),
-	// biome-ignore lint/style/useNamingConvention: GitHub API uses snake_case
 	html_url: Schema.String.annotations({
 		arbitrary: () => (fc) =>
 			fc.constantFrom(
@@ -61,7 +57,6 @@ export const GitHubUser = Schema.Struct({
 	type: Schema.String.annotations({
 		arbitrary: () => (fc) => fc.constantFrom("User", "Bot"),
 	}),
-	// biome-ignore lint/style/useNamingConvention: GitHub API uses snake_case
 	site_admin: Schema.Boolean,
 });
 
@@ -70,7 +65,6 @@ export const GitHubRepository = Schema.Struct({
 	id: Schema.Number.annotations({
 		arbitrary: () => (fc) => fc.integer({ min: 1, max: 1_000_000 }),
 	}),
-	// biome-ignore lint/style/useNamingConvention: GitHub API uses snake_case
 	node_id: Schema.String.annotations({
 		arbitrary: () => (fc) =>
 			fc.constantFrom("repo_node1", "repo_node2", "repo_node3"),
@@ -84,7 +78,6 @@ export const GitHubRepository = Schema.Struct({
 				"api-service",
 			),
 	}),
-	// biome-ignore lint/style/useNamingConvention: GitHub API uses snake_case
 	full_name: Schema.String.annotations({
 		arbitrary: () => (fc) =>
 			fc.constantFrom(
@@ -94,7 +87,6 @@ export const GitHubRepository = Schema.Struct({
 			),
 	}),
 	private: Schema.Boolean,
-	// biome-ignore lint/style/useNamingConvention: GitHub API uses snake_case
 	html_url: Schema.String.annotations({
 		arbitrary: () => (fc) =>
 			fc.constantFrom(
@@ -118,7 +110,6 @@ export const GitHubRepository = Schema.Struct({
 				"https://api.github.com/repos/developer/webhook-handler",
 			),
 	}),
-	// biome-ignore lint/style/useNamingConvention: GitHub API uses snake_case
 	default_branch: Schema.String.annotations({
 		arbitrary: () => (fc) => fc.constantFrom("main", "master", "develop"),
 	}),
@@ -165,7 +156,6 @@ export const GitHubLabel = Schema.Struct({
 	id: Schema.Number.annotations({
 		arbitrary: () => (fc) => fc.integer({ min: 1, max: 100_000 }),
 	}),
-	// biome-ignore lint/style/useNamingConvention: GitHub API uses snake_case
 	node_id: Schema.String.annotations({
 		arbitrary: () => (fc) =>
 			fc.constantFrom("label_node1", "label_node2", "label_node3"),
@@ -208,7 +198,6 @@ export const GitHubPullRequest = Schema.Struct({
 	id: Schema.Number.annotations({
 		arbitrary: () => (fc) => fc.integer({ min: 1, max: 1_000_000 }),
 	}),
-	// biome-ignore lint/style/useNamingConvention: GitHub API uses snake_case
 	node_id: Schema.String.annotations({
 		arbitrary: () => (fc) =>
 			fc.constantFrom("PR_node123", "PR_node456", "PR_node789"),
@@ -237,7 +226,6 @@ export const GitHubPullRequest = Schema.Struct({
 				"Updated the documentation to reflect recent changes",
 			),
 	}),
-	// biome-ignore lint/style/useNamingConvention: GitHub API uses snake_case
 	created_at: Schema.DateFromString.annotations({
 		arbitrary: () => (fc) =>
 			fc
@@ -249,7 +237,6 @@ export const GitHubPullRequest = Schema.Struct({
 				)
 				.map((dateStr) => new Date(dateStr)),
 	}),
-	// biome-ignore lint/style/useNamingConvention: GitHub API uses snake_case
 	updated_at: Schema.DateFromString.annotations({
 		arbitrary: () => (fc) =>
 			fc
@@ -261,27 +248,23 @@ export const GitHubPullRequest = Schema.Struct({
 				)
 				.map((dateStr) => new Date(dateStr)),
 	}),
-	// biome-ignore lint/style/useNamingConvention: GitHub API uses snake_case
 	closed_at: Schema.NullOr(Schema.DateFromString).annotations({
 		arbitrary: () => (fc) =>
 			fc
 				.constantFrom(null, "2024-01-03T15:00:00Z", "2024-06-17T16:30:00Z")
 				.map((dateStr) => (dateStr ? new Date(dateStr) : null)),
 	}),
-	// biome-ignore lint/style/useNamingConvention: GitHub API uses snake_case
 	merged_at: Schema.NullOr(Schema.DateFromString).annotations({
 		arbitrary: () => (fc) =>
 			fc
 				.constantFrom(null, "2024-01-03T15:00:00Z", "2024-06-17T16:30:00Z")
 				.map((dateStr) => (dateStr ? new Date(dateStr) : null)),
 	}),
-	// biome-ignore lint/style/useNamingConvention: GitHub API uses snake_case
 	merge_commit_sha: Schema.NullOr(Schema.String).annotations({
 		arbitrary: () => (fc) =>
 			fc.constantFrom(null, "abc123def456", "def456abc123", "123abc456def"),
 	}),
 	draft: Schema.Boolean,
-	// biome-ignore lint/style/useNamingConvention: GitHub API uses snake_case
 	html_url: Schema.String.annotations({
 		arbitrary: () => (fc) =>
 			fc.constantFrom(
@@ -305,7 +288,6 @@ export const GitHubPullRequest = Schema.Struct({
 	merged: Schema.Boolean,
 	mergeable: Schema.NullOr(Schema.Boolean),
 	rebaseable: Schema.NullOr(Schema.Boolean),
-	// biome-ignore lint/style/useNamingConvention: GitHub API uses snake_case
 	mergeable_state: Schema.String.annotations({
 		arbitrary: () => (fc) =>
 			fc.constantFrom("clean", "dirty", "unstable", "blocked"),
@@ -313,11 +295,9 @@ export const GitHubPullRequest = Schema.Struct({
 	comments: Schema.Number.annotations({
 		arbitrary: () => (fc) => fc.integer({ min: 0, max: 50 }),
 	}),
-	// biome-ignore lint/style/useNamingConvention: GitHub API uses snake_case
 	review_comments: Schema.Number.annotations({
 		arbitrary: () => (fc) => fc.integer({ min: 0, max: 20 }),
 	}),
-	// biome-ignore lint/style/useNamingConvention: GitHub API uses snake_case
 	maintainer_can_modify: Schema.Boolean,
 	commits: Schema.Number.annotations({
 		arbitrary: () => (fc) => fc.integer({ min: 1, max: 10 }),
@@ -328,7 +308,6 @@ export const GitHubPullRequest = Schema.Struct({
 	deletions: Schema.Number.annotations({
 		arbitrary: () => (fc) => fc.integer({ min: 0, max: 200 }),
 	}),
-	// biome-ignore lint/style/useNamingConvention: GitHub API uses snake_case
 	changed_files: Schema.Number.annotations({
 		arbitrary: () => (fc) => fc.integer({ min: 1, max: 20 }),
 	}),
@@ -338,19 +317,16 @@ export const GitHubPullRequest = Schema.Struct({
 export const GitHubPullRequestWebhook = Schema.Struct({
 	action: PullRequestAction,
 	number: Schema.Number,
-	// biome-ignore lint/style/useNamingConvention: GitHub API uses snake_case
 	pull_request: GitHubPullRequest,
 	repository: GitHubRepository,
 	sender: GitHubUser,
 	// Optional fields that may appear based on action
 	label: Schema.optional(GitHubLabel),
 	assignee: Schema.optional(GitHubUser),
-	// biome-ignore lint/style/useNamingConvention: GitHub API uses snake_case
 	requested_reviewer: Schema.optional(GitHubUser),
 	installation: Schema.optional(
 		Schema.Struct({
 			id: Schema.Number,
-			// biome-ignore lint/style/useNamingConvention: GitHub API uses snake_case
 			node_id: Schema.String,
 		}),
 	),
