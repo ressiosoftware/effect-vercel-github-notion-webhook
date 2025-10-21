@@ -5,12 +5,12 @@
   "type": "module",
   "version": "0.0.0",
   "engines": {
-    "node": ">=22"
+    "node": ">=22.19.0"
   },
   "devEngines": {
     "runtime": {
       "name": "node",
-      "version": "^22",
+      "version": "^22.19.0",
       "onFail": "download"
     }
   },
@@ -21,12 +21,12 @@
     "test:watch": "vitest",
     "test:run": "vitest run",
     "lint:check": "biome lint .",
-    "lint:check:staged": "biome lint .",
+    "lint:check:staged": "biome lint . --staged",
     "lint:fix": "biome lint --write .",
-    "lint:fix:staged": "biome lint --write .",
+    "lint:fix:staged": "biome lint --write . --staged",
     "format:check": "biome format .",
-    "format:check:staged": "biome format .",
-    "format:fix:staged": "biome format --write .",
+    "format:check:staged": "biome format . --staged",
+    "format:fix:staged": "biome format --write . --staged",
     "format:fix": "biome format --write .",
     "check": "biome check --write .",
     "types:check": "tsc --noEmit"
