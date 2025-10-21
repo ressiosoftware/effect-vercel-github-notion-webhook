@@ -42,7 +42,7 @@ const NodeSdkTracedLive = Layer.unwrapEffect(
 						// going to use `as SpanExporter` for now
 						(new OTLPTraceExporter({
 							url: otelExporterOtlpTracesEndpoint,
-						}) as SpanExporter)
+						}) satisfies SpanExporter)
 					: new ConsoleSpanExporter(),
 			),
 		}));
