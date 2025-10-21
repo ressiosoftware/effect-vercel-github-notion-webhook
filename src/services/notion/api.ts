@@ -33,11 +33,11 @@ export class Notion extends Context.Tag("Notion")<
 		 */
 		readonly setNotionStatus: (
 			pageId: string,
-			status: string,
+			status: "In progress" | "In review",
 		) => Effect.Effect<
 			{
 				pageId: string;
-				newStatus: string;
+				newStatus: "In progress" | "In review";
 			},
 			NotionRequestFailureError,
 			never

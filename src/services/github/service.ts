@@ -22,6 +22,11 @@ import { createHmac } from "node:crypto";
 const sch = Schema.RedactedFromSelf(Schema.String);
 type RedactedString = typeof sch.Type;
 
+const notionStatusFromGithubStatus = {
+	draft: "In progress",
+	ready: "In review",
+} as const;
+
 export const validateWebhookSignature = Effect.fn("validateWebhookSignature")(
 	function* (body: unknown, signature: string, secret: RedactedString) {
 		const expectedSignature = yield* Effect.sync(
@@ -202,7 +207,13 @@ export const handlePostRequest = Effect.fn("handlePostRequest")(function* (
 	const updatedTasks: Array<{
 		genId: string;
 		notionPageId: string;
+		newStatus: "In progress" | "In review";
 	}> = [];
+
+	const statusName =
+		notionStatusFromGithubStatus[
+			webhook.pull_request.draft ? "draft" : "ready"
+		];
 
 	for (const genId of genIdMatches) {
 		// Turn `GEN-#####` into a Notion page ID
@@ -218,7 +229,7 @@ export const handlePostRequest = Effect.fn("handlePostRequest")(function* (
 		// Use the page ID to update the status of the task
 		const statusUpdateResult = yield* notion.setNotionStatus(
 			notionPageId,
-			"In progress",
+			statusName,
 		);
 
 		yield* Effect.log(
@@ -229,6 +240,7 @@ export const handlePostRequest = Effect.fn("handlePostRequest")(function* (
 		updatedTasks.push({
 			genId,
 			notionPageId: statusUpdateResult.pageId,
+			newStatus: statusUpdateResult.newStatus,
 		});
 	}
 

@@ -69,7 +69,7 @@ const NotionServiceTest = Layer.succeed(Notion, {
 
 	setNotionStatus: Effect.fn("setNotionStatus")(function* (
 		pageId: string,
-		status: string,
+		status: "In progress" | "In review",
 	) {
 		return yield* Effect.succeed({
 			pageId,
@@ -197,95 +197,114 @@ describe("Webhook", () => {
 			});
 			// .. but only use 1 of the array samples
 			const prActionsSample = FastCheck.sample(uniquePrActions, 1)[0];
+			const draftStates: ReadonlyArray<boolean> = [false, true];
 
 			describe("should extract GEN-#s from title/branch of `pull_request` events and update Notion", () => {
 				for (const pullRequestAction of prActionsSample) {
-					it.effect(`'${pullRequestAction}' action`, () =>
-						Effect.gen(function* () {
-							// Create the arbitrary generator for realistic webhook data
-							const webhookArbitrary = Arbitrary.make(GitHubPullRequestWebhook);
+					for (const draft of draftStates) {
+						it.effect(`'${pullRequestAction}' action (draft=${draft})`, () =>
+							Effect.gen(function* () {
+								// Create the arbitrary generator for realistic webhook data
+								const webhookArbitrary = Arbitrary.make(
+									GitHubPullRequestWebhook,
+								);
 
-							// Generate realistic webhook payload using our annotated schemas
-							const [webhookData] = FastCheck.sample(webhookArbitrary, 1);
+								// Generate realistic webhook payload using our annotated schemas
+								const [webhookData] = FastCheck.sample(webhookArbitrary, 1);
+								const forcedGenId = "GEN-9999";
 
-							// Convert all Date objects to ISO strings for proper JSON serialization
-							const webhookPayload = {
-								...webhookData,
-								action: "opened", // Set specific action for deterministic testing
-								pull_request: {
+								const pullRequestForSchema = {
 									...webhookData.pull_request,
-
-									// TODO: letting Arbitrary/FastCheck take the wheel seems to
-									// cause issues - likely string vs Date parsing - so figure
-									// that shit out. we shouldn't need to do this vv.
-									created_at: webhookData.pull_request.created_at.toISOString(),
-									updated_at: webhookData.pull_request.updated_at.toISOString(),
-									closed_at:
-										webhookData.pull_request.closed_at?.toISOString() || null,
-									merged_at:
-										webhookData.pull_request.merged_at?.toISOString() || null,
-								},
-							};
-
-							// overwrite VercelHttpContextTest with test-specific layer
-							const localVercelHttpContext = Layer.succeed(VercelHttpContext, {
-								// TODO: use Arbitrary/FastCheck?
-								request: createVercelHttpRequestMock({
-									method: "POST",
-									headers: {
-										"x-github-event": "pull_request",
-										"x-github-delivery": "test-delivery-123",
-										"content-type": "application/json",
-
-										// TODO: test signature validation?
-										// "x-hub-signature-256": "sha256=abc123def456",
+									draft,
+									title: `[${forcedGenId}] ${webhookData.pull_request.title}`,
+									head: {
+										...webhookData.pull_request.head,
+										ref: forcedGenId,
 									},
-									body: webhookPayload,
-								}),
-								response: VercelHttpResponseMock,
-							});
+								};
 
-							const localContext = Layer.mergeAll(
-								SystemInfoTest,
-								NotionServiceTest,
-								localVercelHttpContext,
-							);
+								// Convert Date objects to ISO strings for request payload
+								const webhookPayload = {
+									...webhookData,
+									action: "opened", // Set specific action for deterministic testing
+									pull_request: {
+										...pullRequestForSchema,
+										created_at: pullRequestForSchema.created_at.toISOString(),
+										updated_at: pullRequestForSchema.updated_at.toISOString(),
+										closed_at:
+											pullRequestForSchema.closed_at?.toISOString() || null,
+										merged_at:
+											pullRequestForSchema.merged_at?.toISOString() || null,
+									},
+								};
 
-							const result = yield* Effect.exit(
-								Effect.withConfigProvider(
-									Effect.provide(program(), localContext),
+								// overwrite VercelHttpContextTest with test-specific layer
+								const localVercelHttpContext = Layer.succeed(
+									VercelHttpContext,
+									{
+										// TODO: use Arbitrary/FastCheck?
+										request: createVercelHttpRequestMock({
+											method: "POST",
+											headers: {
+												"x-github-event": "pull_request",
+												"x-github-delivery": "test-delivery-123",
+												"content-type": "application/json",
 
-									AppConfigProviderTest,
-								),
-							);
+												// TODO: test signature validation?
+												// "x-hub-signature-256": "sha256=abc123def456",
+											},
+											body: webhookPayload,
+										}),
+										response: VercelHttpResponseMock,
+									},
+								);
 
-							// Create the schema with the test prefix
-							const GenIdFromPullRequest = makeGenIdFromPullRequest("GEN");
-							const expectedGenIds = yield* Schema.decode(GenIdFromPullRequest)(
-								webhookData.pull_request,
-							);
+								const localContext = Layer.mergeAll(
+									SystemInfoTest,
+									NotionServiceTest,
+									localVercelHttpContext,
+								);
 
-							Exit.match(result, {
-								onSuccess: (data) => {
-									if (!("notion" in data)) {
-										assert.fail("notion field not found");
-									}
+								const result = yield* Effect.exit(
+									Effect.withConfigProvider(
+										Effect.provide(program(), localContext),
 
-									assert.deepStrictEqual(
-										data.notion.updatedTasks,
+										AppConfigProviderTest,
+									),
+								);
 
-										expectedGenIds.map((genId) => ({
-											genId,
-											notionPageId: MOCK_NOTION_PAGE_ID,
-										})),
+								// Create the schema with the test prefix
+								const GenIdFromPullRequest = makeGenIdFromPullRequest("GEN");
+								const expectedGenIds =
+									yield* Schema.decode(GenIdFromPullRequest)(
+										pullRequestForSchema,
 									);
-								},
-								onFailure: () => {
-									assert.fail("Should not fail for provided data");
-								},
-							});
-						}),
-					);
+
+								Exit.match(result, {
+									onSuccess: (data) => {
+										if (!("notion" in data)) {
+											assert.fail("notion field not found");
+										}
+
+										assert.deepStrictEqual(
+											data.notion.updatedTasks,
+
+											expectedGenIds.map((genId) => ({
+												genId,
+												notionPageId: MOCK_NOTION_PAGE_ID,
+												newStatus: draft
+													? ("In progress" as const)
+													: ("In review" as const),
+											})),
+										);
+									},
+									onFailure: () => {
+										assert.fail("Should not fail for provided data");
+									},
+								});
+							}),
+						);
+					}
 				}
 			});
 		});

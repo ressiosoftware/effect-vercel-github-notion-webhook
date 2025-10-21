@@ -162,7 +162,7 @@ export const NotionLive = Layer.effect(
 				/** Full "Task ID" for record in in the "Tasks" database
 				 * @example `GEN-6250` */
 				pageId: string,
-				status: string,
+				status: "In progress" | "In review",
 			) {
 				// TODO: there's definitely a cleverer way to do this swapperoo;
 				// probably conditionally swapping out the notion client
