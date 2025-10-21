@@ -34,17 +34,17 @@ const NodeSdkTracedLive = Layer.unwrapEffect(
 			nodeEnv,
 		});
 
-		const exporter = (
-			otelExporterOtlpTracesEndpoint
-				? new OTLPTraceExporter({
-						url: otelExporterOtlpTracesEndpoint,
-					})
-				: new ConsoleSpanExporter()
-		) satisfies SpanExporter;
-
 		return NodeSdk.layer(() => ({
 			resource: { serviceName: "api/webhook.ts#TracingLive" },
-			spanProcessor: new BatchSpanProcessor(exporter),
+			spanProcessor: new BatchSpanProcessor(
+				otelExporterOtlpTracesEndpoint
+					? // TODO: why does this cause `vercel build` to fail? (type mismatch in prod vs dev)
+						// going to use `as SpanExporter` for now
+						(new OTLPTraceExporter({
+							url: otelExporterOtlpTracesEndpoint,
+						}) as SpanExporter)
+					: new ConsoleSpanExporter(),
+			),
 		}));
 	}),
 );
