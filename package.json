@@ -29,7 +29,8 @@
 		"format:fix:staged": "biome format --write . --staged",
 		"format:fix": "biome format --write .",
 		"check": "biome check --write .",
-		"types:check": "tsc --noEmit"
+		"types:check": "tsc --noEmit",
+		"build:vercel": "vercel build"
 	},
 	"imports": {
 		"#api/*": "./api/*",
@@ -55,6 +56,7 @@
 		"@effect/experimental": "catalog:effect",
 		"@effect/opentelemetry": "catalog:effect",
 		"@notionhq/client": "catalog:notion",
+		"@opentelemetry/api": "catalog:effect",
 		"@opentelemetry/exporter-trace-otlp-http": "catalog:effect",
 		"@opentelemetry/sdk-trace-base": "catalog:effect",
 		"@opentelemetry/sdk-trace-web": "catalog:effect",

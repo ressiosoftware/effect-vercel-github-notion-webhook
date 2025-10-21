@@ -9,10 +9,11 @@ catalogs:
         lefthook: ^1.13.6
         ultracite: ^5.6.4
     effect:
-        "@effect/language-service": ^0.45.1
         "@effect/experimental": ^0.56.0
+        "@effect/language-service": ^0.45.1
         "@effect/opentelemetry": ^0.58.0
         "@effect/vitest": ^0.26.0
+        "@opentelemetry/api": "^1.9.0"
         "@opentelemetry/exporter-trace-otlp-http": ^0.206.0
         "@opentelemetry/sdk-trace-base": ^2.1.0
         "@opentelemetry/sdk-trace-web": ^2.1.0
