@@ -68,14 +68,17 @@ const NodeSdkTracedLive = Layer.unwrapEffect(
 							// TODO: getting the impression that this shouldn't be necessary;
 							// i think maybe Vercel prefers the use of "Drain"?
 							// need to learn more about otel and vercel...
-							//
+							// --
+							// UPDATE/NEW DISCOVERY:
+							// datadog's agentless OTLP support is currently limited to logs and metrics.
+							// --
 							// inject headers (eg for desired APM)
-							headers: {
-								// for datadog APM
-								...(ddApiKey && {
-									"dd-api-key": Redacted.value(ddApiKey),
-								}),
-							},
+							// headers: {
+							// 	// for datadog APM
+							// 	...(ddApiKey && {
+							// 		"dd-api-key": Redacted.value(ddApiKey),
+							// 	}),
+							// },
 						}) as SpanExporter)
 					: new ConsoleSpanExporter(),
 			),
