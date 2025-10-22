@@ -43,15 +43,21 @@ const NodeSdkTracedLive = Layer.unwrapEffect(
 			datadogApiKey: optionalRedactedDdApiKey,
 		} = yield* AppConfig;
 
-		yield* Effect.log("🔍 Tracing live", {
-			nodeEnv,
-		});
-
 		// TODO: (probably) ripe for just making a schema that parses AppConfig values
 		const ddApiKey = pipe(optionalRedactedDdApiKey, Option.getOrNull);
 
+		yield* Effect.log("🔍 Tracing live", {
+			nodeEnv,
+			hasDatadogApiKey: !!ddApiKey,
+		});
+
 		return NodeSdk.layer(() => ({
-			resource: { serviceName: "api/webhook.ts#TracingLive" },
+			resource: {
+				serviceName: "github-notion",
+				// WARN: ^ may need to match vercel project name if using Vercel 'Drain'
+
+				// [FUTURE] version: "0.0.1",
+			},
 			spanProcessor: new BatchSpanProcessor(
 				otelExporterOtlpTracesEndpoint
 					? // TODO: why does this cause `vercel build` to fail? (type mismatch in prod vs dev)
@@ -59,6 +65,10 @@ const NodeSdkTracedLive = Layer.unwrapEffect(
 						(new OTLPTraceExporter({
 							url: otelExporterOtlpTracesEndpoint,
 
+							// TODO: getting the impression that this shouldn't be necessary;
+							// i think maybe Vercel prefers the use of "Drain"?
+							// need to learn more about otel and vercel...
+							//
 							// inject headers (eg for desired APM)
 							headers: {
 								// for datadog APM
