@@ -7,16 +7,7 @@ import {
 	type SpanExporter,
 } from "@opentelemetry/sdk-trace-base";
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import {
-	Cause,
-	ConfigError,
-	Effect,
-	Exit,
-	Layer,
-	Option,
-	pipe,
-	Redacted,
-} from "effect";
+import { Cause, ConfigError, Effect, Exit, Layer } from "effect";
 import { ParseError } from "effect/ParseResult";
 import { AppConfig } from "#platform/schema.ts";
 import {
@@ -40,15 +31,14 @@ const NodeSdkTracedLive = Layer.unwrapEffect(
 		const {
 			nodeEnv,
 			otelExporterOtlpTracesEndpoint,
-			datadogApiKey: optionalRedactedDdApiKey,
+			// datadogApiKey: optionalRedactedDdApiKey,
 		} = yield* AppConfig;
 
 		// TODO: (probably) ripe for just making a schema that parses AppConfig values
-		const ddApiKey = pipe(optionalRedactedDdApiKey, Option.getOrNull);
+		// const ddApiKey = pipe(optionalRedactedDdApiKey, Option.getOrNull);
 
 		yield* Effect.log("🔍 Tracing live", {
 			nodeEnv,
-			hasDatadogApiKey: !!ddApiKey,
 		});
 
 		return NodeSdk.layer(() => ({
