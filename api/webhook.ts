@@ -43,7 +43,7 @@ const NodeSdkTracedLive = Layer.unwrapEffect(
 
 		return NodeSdk.layer(() => ({
 			resource: {
-				serviceName: "github-notion",
+				serviceName: "effect-vercel-github-notion-webhook",
 				// WARN: ^ may need to match vercel project name if using Vercel 'Drain'
 
 				// [FUTURE] version: "0.0.1",
