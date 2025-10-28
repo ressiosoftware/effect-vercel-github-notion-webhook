@@ -224,6 +224,8 @@ export const NotionLive = Layer.effect(
 				pageId: string,
 				prLinks: ReadonlyArray<string>,
 			) {
+				yield* Effect.log("🪵 Notion#setNotionPrLinks() starting...");
+
 				// TODO: there's definitely a cleverer way to do this swapperoo;
 				// probably conditionally swapping out the notion client
 				// or the layer rather than conditionally checking config here?
@@ -337,6 +339,12 @@ export const NotionLive = Layer.effect(
 								: "Unknown Notion error",
 						});
 					},
+				});
+
+				yield* Effect.log("🪵 Notion#setNotionPrLinks() pr links updated", {
+					pageId,
+					prLinks,
+					existingLinks: existingPrLinksResponse,
 				});
 
 				return {
