@@ -245,10 +245,6 @@ export const NotionLive = Layer.effect(
 					try: () =>
 						notion.pages.retrieve({
 							page_id: pageId,
-							filter_properties: [
-								// only get subset of properties
-								"PR links",
-							],
 						}),
 
 					catch(error) {
