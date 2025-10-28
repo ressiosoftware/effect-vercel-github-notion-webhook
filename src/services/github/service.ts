@@ -235,6 +235,9 @@ export const handlePostRequest = Effect.fn("handlePostRequest")(function* (
 			statusUpdateResult,
 		);
 
+		// update the "PR links" property
+		yield* notion.setNotionPrLinks(notionPageId, [webhook.pull_request.url]);
+
 		updatedTasks.push({
 			genId,
 			notionPageId: statusUpdateResult.pageId,
