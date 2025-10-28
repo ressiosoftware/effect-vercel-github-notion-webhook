@@ -17,7 +17,11 @@ import {
 	PullRequestAction,
 } from "#services/github/schema.ts";
 import { Notion } from "#services/notion/api.ts";
-import { makeGenIdFromPullRequest } from "#services/notion/schema.ts";
+import {
+	makeGenIdFromPullRequest,
+	NotionStatusFromPullRequestSchema,
+	type NotionWorkflowStatus,
+} from "#services/notion/schema.ts";
 import { program } from "#services/program.ts";
 import { SystemInfo } from "#services/system-info/service.ts";
 import { VercelHttpContext } from "#services/vercel/types.ts";
@@ -69,11 +73,21 @@ const NotionServiceTest = Layer.succeed(Notion, {
 
 	setNotionStatus: Effect.fn("setNotionStatus")(function* (
 		pageId: string,
-		status: "In progress" | "In review",
+		status: NotionWorkflowStatus,
 	) {
 		return yield* Effect.succeed({
 			pageId,
 			newStatus: status,
+		});
+	}),
+
+	setNotionPrLinks: Effect.fn("setNotionPrLinks")(function* (
+		pageId: string,
+		prLinks: ReadonlyArray<string>,
+	) {
+		return yield* Effect.succeed({
+			pageId,
+			prLinks: Array.from(new Set(prLinks)),
 		});
 	}),
 });
@@ -292,9 +306,9 @@ describe("Webhook", () => {
 											expectedGenIds.map((genId) => ({
 												genId,
 												notionPageId: MOCK_NOTION_PAGE_ID,
-												newStatus: draft
-													? ("In progress" as const)
-													: ("In review" as const),
+												newStatus: Schema.decodeUnknownSync(
+													NotionStatusFromPullRequestSchema,
+												)(pullRequestForSchema),
 											})),
 										);
 									},

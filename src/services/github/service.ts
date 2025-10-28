@@ -15,17 +15,16 @@ import {
 	GitHubPullRequestWebhook,
 } from "#services/github/schema.ts";
 import { Notion } from "#services/notion/api.ts";
-import { makeGenIdFromPullRequest } from "#services/notion/schema.ts";
+import {
+	makeGenIdFromPullRequest,
+	NotionStatusFromPullRequestSchema,
+	type NotionWorkflowStatus,
+} from "#services/notion/schema.ts";
 import { SystemInfo } from "#services/system-info/service.ts";
 import { createHmac } from "node:crypto";
 
 const sch = Schema.RedactedFromSelf(Schema.String);
 type RedactedString = typeof sch.Type;
-
-const notionStatusFromGithubStatus = {
-	draft: "In progress",
-	ready: "In review",
-} as const;
 
 export const validateWebhookSignature = Effect.fn("validateWebhookSignature")(
 	function* (body: unknown, signature: string, secret: RedactedString) {
@@ -207,13 +206,12 @@ export const handlePostRequest = Effect.fn("handlePostRequest")(function* (
 	const updatedTasks: Array<{
 		genId: string;
 		notionPageId: string;
-		newStatus: "In progress" | "In review";
+		newStatus: NotionWorkflowStatus;
 	}> = [];
 
-	const statusName =
-		notionStatusFromGithubStatus[
-			webhook.pull_request.draft ? "draft" : "ready"
-		];
+	const statusName = yield* Schema.decodeUnknown(
+		NotionStatusFromPullRequestSchema,
+	)(webhook.pull_request);
 
 	for (const genId of genIdMatches) {
 		// Turn `GEN-#####` into a Notion page ID

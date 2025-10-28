@@ -2,6 +2,7 @@ import { Context, type Effect } from "effect";
 import type { ConfigError } from "effect/ConfigError";
 import type { ParseError } from "effect/ParseResult";
 import type { NotionRequestFailureError } from "#services/notion/errors.ts";
+import type { NotionWorkflowStatus } from "#services/notion/schema.ts";
 
 export class Notion extends Context.Tag("Notion")<
 	Notion,
@@ -33,11 +34,27 @@ export class Notion extends Context.Tag("Notion")<
 		 */
 		readonly setNotionStatus: (
 			pageId: string,
-			status: "In progress" | "In review",
+			status: NotionWorkflowStatus,
 		) => Effect.Effect<
 			{
 				pageId: string;
-				newStatus: "In progress" | "In review";
+				newStatus: NotionWorkflowStatus;
+			},
+			NotionRequestFailureError,
+			never
+		>;
+
+		/**
+		 * Adds the provided URLs to the 'PR links' property of the given Notion page,
+		 * skipping any links that already exist.
+		 */
+		readonly setNotionPrLinks: (
+			pageId: string,
+			prLinks: ReadonlyArray<string>,
+		) => Effect.Effect<
+			{
+				pageId: string;
+				prLinks: ReadonlyArray<string>;
 			},
 			NotionRequestFailureError,
 			never

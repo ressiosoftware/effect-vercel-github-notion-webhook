@@ -4,7 +4,14 @@ import { Effect, Layer, Redacted, Schema } from "effect";
 import { AppConfig } from "#platform/schema.ts";
 import { Notion } from "#services/notion/api.ts";
 import { NotionRequestFailureError } from "#services/notion/errors.ts";
-import { makeGenIdNumberFromString } from "#services/notion/schema.ts";
+import {
+	makeGenIdNumberFromString,
+	NotionPrLinksFilesSchema,
+} from "#services/notion/schema.ts";
+import type {
+	NotionFileAttachment,
+	NotionWorkflowStatus,
+} from "#services/notion/schema.ts";
 
 export const NotionLive = Layer.effect(
 	Notion,
@@ -162,7 +169,7 @@ export const NotionLive = Layer.effect(
 				/** Full "Task ID" for record in in the "Tasks" database
 				 * @example `GEN-6250` */
 				pageId: string,
-				status: "In progress" | "In review",
+				status: NotionWorkflowStatus,
 			) {
 				// TODO: there's definitely a cleverer way to do this swapperoo;
 				// probably conditionally swapping out the notion client
@@ -210,6 +217,123 @@ export const NotionLive = Layer.effect(
 				return {
 					pageId,
 					newStatus: status,
+				};
+			}),
+
+			setNotionPrLinks: Effect.fn("setNotionPrLinks")(function* (
+				pageId: string,
+				prLinks: ReadonlyArray<string>,
+			) {
+				// TODO: there's definitely a cleverer way to do this swapperoo;
+				// probably conditionally swapping out the notion client
+				// or the layer rather than conditionally checking config here?
+				if (notionDryRun) {
+					yield* Effect.log("🪵 [dry-run] Notion#setNotionPrLinks() skipped", {
+						pageId,
+						prLinks,
+					});
+
+					return {
+						pageId,
+						prLinks: Array.from(new Set(prLinks)),
+					};
+				}
+
+				const existingPrLinksResponse = yield* Effect.tryPromise({
+					try: () =>
+						notion.pages.retrieve({
+							page_id: pageId,
+						}),
+
+					catch(error) {
+						return new NotionRequestFailureError({
+							reason: types.isNativeError(error)
+								? error.message
+								: "Unknown Notion error",
+						});
+					},
+				});
+
+				const existingFiles = yield* Effect.mapError(
+					Schema.decodeUnknown(NotionPrLinksFilesSchema)(
+						existingPrLinksResponse,
+					),
+					(error) =>
+						new NotionRequestFailureError({
+							reason:
+								error instanceof Error
+									? error.message
+									: "Failed to parse Notion PR links property",
+						}),
+				);
+
+				const extractUrl = (file: NotionFileAttachment): string | undefined => {
+					if ("external" in file) {
+						return file.external.url;
+					}
+
+					return file.file.url;
+				};
+
+				const existingUrls = new Set(
+					existingFiles
+						.map(extractUrl)
+						.filter((url): url is string => typeof url === "string"),
+				);
+
+				const linksToAdd: Array<string> = [];
+
+				for (const link of prLinks) {
+					if (!(existingUrls.has(link) || linksToAdd.includes(link))) {
+						linksToAdd.push(link);
+					}
+				}
+
+				if (linksToAdd.length === 0) {
+					return {
+						pageId,
+						prLinks: existingFiles
+							.map(extractUrl)
+							.filter((url): url is string => typeof url === "string"),
+					};
+				}
+
+				const filesPayload = [
+					...existingFiles,
+					...linksToAdd.map((url) => ({
+						type: "external" as const,
+						name: url,
+						external: {
+							url,
+						},
+					})),
+				] satisfies Array<NotionFileAttachment>;
+
+				yield* Effect.tryPromise({
+					try: () =>
+						notion.pages.update({
+							page_id: pageId,
+							properties: {
+								"PR links": {
+									files: filesPayload,
+								},
+							},
+						}),
+
+					catch(error) {
+						return new NotionRequestFailureError({
+							reason: types.isNativeError(error)
+								? error.message
+								: "Unknown Notion error",
+						});
+					},
+				});
+
+				return {
+					pageId,
+					prLinks: filesPayload
+						.map(extractUrl)
+						.filter((url): url is string => typeof url === "string"),
 				};
 			}),
 		} as const;
